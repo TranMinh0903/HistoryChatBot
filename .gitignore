@@ -1,0 +1,25 @@
+# ---------- Node / Frontend ----------
+node_modules/
+frontend/dist/
+frontend/node_modules/
+*.local
+.env
+.env.*
+!.env.example
+
+# ---------- .NET / Backend ----------
+bin/
+obj/
+*.user
+appsettings.*.local.json
+
+# ---------- IDE / OS ----------
+.vs/
+.vscode/
+.idea/
+*.suo
+Thumbs.db
+.DS_Store
+
+# ---------- Docker volumes ----------
+pgdata/

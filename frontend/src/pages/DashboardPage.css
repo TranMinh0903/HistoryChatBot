@@ -1,0 +1,24 @@
+/* Stat cards */
+.dash-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.dash-card { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+.dash-card-icon { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+.dash-card-icon.tone-red { background: var(--grad-red); }
+.dash-card-icon.tone-gold { background: var(--grad-gold); color: var(--red-deeper); }
+.dash-card-value { font-size: 1.6rem; font-weight: 800; color: var(--text); line-height: 1.1; }
+.dash-card-label { font-size: .82rem; color: var(--text-soft); margin-top: 2px; }
+
+/* Charts grid */
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.dash-chart h3 { font-size: 1rem; color: var(--red-dark); margin-bottom: 16px; }
+
+/* Leaderboard */
+.dash-board { display: flex; flex-direction: column; gap: 8px; }
+.dash-board-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); }
+.dash-board-row.me { background: #fff7e0; border: 1px solid var(--gold); }
+.dash-rank { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: .85rem; background: var(--border); color: var(--text-soft); flex-shrink: 0; }
+.dash-rank.rank-1 { background: #FFD700; color: #6b5300; } .dash-rank.rank-2 { background: #C0C0C0; color: #444; } .dash-rank.rank-3 { background: #CD7F32; color: #fff; }
+.dash-board-name { flex: 1; font-weight: 600; }
+.dash-board-attempts { font-size: .82rem; }
+.dash-board-score { display: inline-flex; align-items: center; gap: 5px; font-weight: 800; color: var(--red-dark); }
+
+@media (max-width: 960px) { .dash-grid { grid-template-columns: 1fr; } }

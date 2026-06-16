@@ -1,0 +1,39 @@
+.login { display: flex; height: 100vh; overflow: hidden; }
+
+/* Left hero */
+.login-hero {
+  flex: 1; min-width: 0; position: relative; color: #fff;
+  background: linear-gradient(150deg, #7A0F12 0%, #A4161A 55%, #DA251D 100%);
+  display: grid; place-items: center; overflow: hidden;
+}
+.login-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 80% 15%, rgba(255,205,0,.18), transparent 45%),
+    radial-gradient(circle at 12% 85%, rgba(255,205,0,.12), transparent 40%);
+}
+.login-hero-inner { position: relative; max-width: 420px; padding: 40px; }
+.login-star {
+  width: 84px; height: 84px; border-radius: 22px; display: grid; place-items: center;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,205,0,.55); margin-bottom: 26px;
+}
+.login-hero h1 { font-size: 2.4rem; line-height: 1.15; color: #fff; }
+.login-period { color: var(--gold); font-weight: 600; margin-top: 8px; letter-spacing: .3px; }
+.login-features { list-style: none; margin-top: 30px; display: flex; flex-direction: column; gap: 14px; }
+.login-features li { font-size: 1rem; color: rgba(255,255,255,.92); }
+
+/* Right form */
+.login-form-wrap { width: 460px; flex-shrink: 0; display: grid; place-items: center; padding: 32px; background: var(--bg); }
+.login-form { width: 100%; max-width: 360px; }
+.login-form h2 { font-size: 1.7rem; color: var(--red-dark); }
+.login-sub { margin: 4px 0 22px; }
+.field { margin-bottom: 15px; }
+.login-error { background: #fde2e0; color: var(--red-dark); padding: 10px 14px; border-radius: 9px; font-size: .88rem; margin-bottom: 14px; }
+.login-switch { text-align: center; margin-top: 18px; color: var(--text-soft); font-size: .92rem; }
+.login-switch button { background: none; border: none; color: var(--red); font-weight: 700; cursor: pointer; font: inherit; }
+.login-demo { margin-top: 22px; background: var(--surface-2); border: 1px dashed var(--gold); border-radius: 10px; padding: 12px 14px; font-size: .82rem; color: var(--text-soft); }
+
+@media (max-width: 860px) {
+  .login-hero { display: none; }
+  .login-form-wrap { width: 100%; }
+}
