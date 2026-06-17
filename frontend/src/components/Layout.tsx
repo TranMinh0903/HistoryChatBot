@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { MessageSquare, Gamepad2, Layers, BarChart3, LogOut, Star } from 'lucide-react'
+import { MessageSquare, Gamepad2, Layers, BarChart3, LogOut, Star, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import './Layout.css'
 
@@ -12,6 +12,9 @@ const NAV = [
 
 export default function Layout() {
   const { user, logout } = useAuth()
+  const navItems = user?.role === 2
+    ? [...NAV, { to: '/manage', label: 'Quản lý', icon: Settings }]
+    : NAV
 
   return (
     <div className="layout">
@@ -25,7 +28,7 @@ export default function Layout() {
         </div>
 
         <nav className="nav-links">
-          {NAV.map(({ to, label, icon: Icon }) => (
+          {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
               <Icon size={20} />
               <span>{label}</span>

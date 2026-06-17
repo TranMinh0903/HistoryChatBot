@@ -26,6 +26,9 @@ public record QuizAttemptSummaryDto(Guid Id, int Score, int CorrectCount, int To
 public record LeaderboardEntryDto(Guid UserId, string DisplayName, int BestScore, int Attempts);
 public record CreateQuestionRequest(string Question, string OptionA, string OptionB, string OptionC, string OptionD,
     string CorrectOption, string? Explanation, int Difficulty, string? Topic, string? Period);
+// Dùng cho màn hình quản lý (Admin) — kèm đáp án đúng + giải thích
+public record QuizQuestionAdminDto(Guid Id, string Question, string OptionA, string OptionB, string OptionC, string OptionD,
+    string CorrectOption, string? Explanation, int Difficulty, string? Topic, string? Period);
 
 // ----- Flashcards -----
 public record FlashcardDto(Guid Id, string Front, string Back, string? Topic, string? Period);
@@ -51,4 +54,8 @@ public static class Mapping
         q.Id, q.Question,
         new Dictionary<string, string> { ["A"] = q.OptionA, ["B"] = q.OptionB, ["C"] = q.OptionC, ["D"] = q.OptionD },
         q.Difficulty, q.Topic, q.Period);
+
+    public static QuizQuestionAdminDto ToAdminDto(this QuizQuestion q) => new(
+        q.Id, q.Question, q.OptionA, q.OptionB, q.OptionC, q.OptionD,
+        q.CorrectOption, q.Explanation, q.Difficulty, q.Topic, q.Period);
 }

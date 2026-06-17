@@ -40,4 +40,26 @@ public class FlashcardsController : ApiControllerBase
         await _db.SaveChangesAsync();
         return f.ToDto();
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, CreateFlashcardRequest req)
+    {
+        var f = await _db.Flashcards.FindAsync(id);
+        if (f is null) return NotFound();
+        f.Front = req.Front; f.Back = req.Back; f.Topic = req.Topic; f.Period = req.Period;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var f = await _db.Flashcards.FindAsync(id);
+        if (f is null) return NotFound();
+        _db.Flashcards.Remove(f);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
 }

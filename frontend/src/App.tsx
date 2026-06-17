@@ -7,6 +7,7 @@ import ChatPage from './pages/ChatPage'
 import QuizPage from './pages/QuizPage'
 import FlashcardsPage from './pages/FlashcardsPage'
 import DashboardPage from './pages/DashboardPage'
+import ManagePage from './pages/ManagePage'
 
 export default function App() {
   const { loading } = useAuth()
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/quiz" element={<QuizPage />} />
         <Route path="/flashcards" element={<FlashcardsPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/manage" element={<ManagePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/chat" replace />} />
     </Routes>

@@ -1,4 +1,7 @@
-import type { QuizQuestion, QuizAnswer, QuizResult, QuizAttemptSummary, LeaderboardEntry } from '../types'
+import type {
+  QuizQuestion, QuizAnswer, QuizResult, QuizAttemptSummary, LeaderboardEntry,
+  QuizQuestionAdmin, QuizQuestionInput,
+} from '../types'
 import { USE_MOCK, http, delay, uid, lsGet, lsSet } from './client'
 import { QUIZ_QUESTIONS } from '../mock/data'
 
@@ -81,4 +84,34 @@ export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
   }
   const { data } = await http.get<LeaderboardEntry[]>(`/quiz/leaderboard?limit=${limit}`)
   return data
+}
+
+// ----- Quản lý câu hỏi (Admin) -----
+export async function getQuestionsAdmin(): Promise<QuizQuestionAdmin[]> {
+  if (USE_MOCK) {
+    await delay(150)
+    return QUIZ_QUESTIONS.map((q) => ({
+      id: q.id, question: q.question,
+      optionA: q.options.A, optionB: q.options.B, optionC: q.options.C, optionD: q.options.D,
+      correctOption: q.correctOption, explanation: q.explanation,
+      difficulty: q.difficulty, topic: q.topic, period: q.period,
+    }))
+  }
+  const { data } = await http.get<QuizQuestionAdmin[]>('/quiz/questions/manage')
+  return data
+}
+
+export async function createQuestion(input: QuizQuestionInput): Promise<void> {
+  if (USE_MOCK) { await delay(100); return }
+  await http.post('/quiz/questions', input)
+}
+
+export async function updateQuestion(id: string, input: QuizQuestionInput): Promise<void> {
+  if (USE_MOCK) { await delay(100); return }
+  await http.put(`/quiz/questions/${id}`, input)
+}
+
+export async function deleteQuestion(id: string): Promise<void> {
+  if (USE_MOCK) { await delay(100); return }
+  await http.delete(`/quiz/questions/${id}`)
 }

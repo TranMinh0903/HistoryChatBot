@@ -87,18 +87,56 @@ public class QuizController : ApiControllerBase
             .ToList();
     }
 
+    // ----- Quản lý (Admin) -----
+    [Authorize(Roles = "Admin")]
+    [HttpGet("questions/manage")]
+    public async Task<ActionResult<List<QuizQuestionAdminDto>>> GetForManage()
+    {
+        return await _db.QuizQuestions
+            .OrderByDescending(q => q.CreatedAt)
+            .Select(q => q.ToAdminDto())
+            .ToListAsync();
+    }
+
     [Authorize(Roles = "Admin")]
     [HttpPost("questions")]
-    public async Task<ActionResult<QuizQuestionDto>> Create(CreateQuestionRequest req)
+    public async Task<ActionResult<QuizQuestionAdminDto>> Create(CreateQuestionRequest req)
     {
-        var q = new QuizQuestion
-        {
-            Question = req.Question, OptionA = req.OptionA, OptionB = req.OptionB,
-            OptionC = req.OptionC, OptionD = req.OptionD, CorrectOption = req.CorrectOption.ToUpperInvariant(),
-            Explanation = req.Explanation, Difficulty = req.Difficulty, Topic = req.Topic, Period = req.Period,
-        };
+        var q = new QuizQuestion();
+        Apply(q, req);
         _db.QuizQuestions.Add(q);
         await _db.SaveChangesAsync();
-        return q.ToDto();
+        return q.ToAdminDto();
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("questions/{id}")]
+    public async Task<IActionResult> Update(Guid id, CreateQuestionRequest req)
+    {
+        var q = await _db.QuizQuestions.FindAsync(id);
+        if (q is null) return NotFound();
+        Apply(q, req);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("questions/{id}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var q = await _db.QuizQuestions.FindAsync(id);
+        if (q is null) return NotFound();
+        _db.QuizQuestions.Remove(q);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    private static void Apply(QuizQuestion q, CreateQuestionRequest req)
+    {
+        q.Question = req.Question;
+        q.OptionA = req.OptionA; q.OptionB = req.OptionB; q.OptionC = req.OptionC; q.OptionD = req.OptionD;
+        q.CorrectOption = req.CorrectOption.ToUpperInvariant();
+        q.Explanation = req.Explanation; q.Difficulty = req.Difficulty;
+        q.Topic = req.Topic; q.Period = req.Period;
     }
 }

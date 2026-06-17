@@ -1,0 +1,38 @@
+/* Tabs */
+.mng-tabs { display: flex; gap: 8px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
+.mng-tab {
+  display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border: none; background: none;
+  font: inherit; font-weight: 600; color: var(--text-soft); cursor: pointer; border-bottom: 3px solid transparent;
+  margin-bottom: -1px; transition: color .14s, border-color .14s;
+}
+.mng-tab:hover { color: var(--red-dark); }
+.mng-tab.active { color: var(--red-dark); border-bottom-color: var(--red); }
+
+.mng-add { margin-bottom: 16px; }
+
+/* List */
+.mng-list { display: flex; flex-direction: column; gap: 10px; }
+.mng-item { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; }
+.mng-item-main { flex: 1; min-width: 0; }
+.mng-item-title { font-weight: 600; line-height: 1.45; }
+.mng-item-sub { color: var(--text-soft); font-size: .9rem; margin-top: 3px; }
+.mng-item-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; font-size: .82rem; }
+.mng-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.mng-icon {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface);
+  display: grid; place-items: center; cursor: pointer; color: var(--text-soft); transition: all .14s;
+}
+.mng-icon:hover { border-color: var(--red); color: var(--red); background: var(--surface-2); }
+.mng-icon.danger:hover { border-color: var(--danger); color: var(--danger); background: #fde7e6; }
+
+/* Modal */
+.mng-overlay {
+  position: fixed; inset: 0; background: rgba(42, 26, 18, .45); backdrop-filter: blur(2px);
+  display: grid; place-items: center; padding: 20px; z-index: 50; animation: fadeIn .15s ease;
+}
+.mng-modal { width: 100%; max-width: 560px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
+.mng-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.mng-modal-head h3 { color: var(--red-dark); }
+.mng-form { padding: 18px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.mng-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mng-modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid var(--border); }

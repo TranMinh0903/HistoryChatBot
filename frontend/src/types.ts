@@ -87,9 +87,44 @@ export interface LeaderboardEntry {
   attempts: number
 }
 
+// ----- Quiz admin (quản lý nội dung) -----
+export interface QuizQuestionAdmin {
+  id: string
+  question: string
+  optionA: string
+  optionB: string
+  optionC: string
+  optionD: string
+  correctOption: Option
+  explanation?: string
+  difficulty: number
+  topic?: string
+  period?: string
+}
+
+export interface QuizQuestionInput {
+  question: string
+  optionA: string
+  optionB: string
+  optionC: string
+  optionD: string
+  correctOption: Option
+  explanation?: string
+  difficulty: number
+  topic?: string
+  period?: string
+}
+
 // ----- Flashcards -----
 export interface Flashcard {
   id: string
+  front: string
+  back: string
+  topic?: string
+  period?: string
+}
+
+export interface FlashcardInput {
   front: string
   back: string
   topic?: string
