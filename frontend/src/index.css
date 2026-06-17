@@ -64,6 +64,8 @@ a:hover { text-decoration: underline; }
 .btn-gold { background: var(--grad-gold); color: #5a3d00; font-weight: 700; }
 .btn-ghost { background: transparent; color: var(--text-soft); border: 1px solid var(--border); }
 .btn-ghost:hover { background: var(--surface-2); border-color: var(--gold); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #a51f1f; }
 .btn-block { width: 100%; }
 .btn-sm { padding: 6px 12px; font-size: .85rem; }
 
