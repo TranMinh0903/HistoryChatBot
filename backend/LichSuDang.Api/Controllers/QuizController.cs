@@ -68,12 +68,22 @@ public class QuizController : ApiControllerBase
     [HttpGet("leaderboard")]
     public async Task<ActionResult<List<LeaderboardEntryDto>>> Leaderboard([FromQuery] int limit = 10)
     {
-        return await _db.QuizAttempts
-            .GroupBy(a => new { a.UserId, a.User!.DisplayName })
-            .Select(g => new LeaderboardEntryDto(g.Key.UserId, g.Key.DisplayName, g.Max(x => x.Score), g.Count()))
-            .OrderByDescending(e => e.BestScore)
+        // Group theo UserId (scalar) để EF dịch được sang SQL, rồi lấy tên hiển thị riêng.
+        var top = await _db.QuizAttempts
+            .GroupBy(a => a.UserId)
+            .Select(g => new { UserId = g.Key, BestScore = g.Max(x => x.Score), Attempts = g.Count() })
+            .OrderByDescending(x => x.BestScore)
             .Take(Math.Clamp(limit, 1, 100))
             .ToListAsync();
+
+        var ids = top.Select(t => t.UserId).ToList();
+        var names = await _db.Users.Where(u => ids.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+
+        return top
+            .Select(t => new LeaderboardEntryDto(
+                t.UserId, names.TryGetValue(t.UserId, out var n) ? n : "Ẩn danh", t.BestScore, t.Attempts))
+            .ToList();
     }
 
     [Authorize(Roles = "Admin")]
