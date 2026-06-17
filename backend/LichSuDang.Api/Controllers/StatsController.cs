@@ -11,18 +11,34 @@ public class StatsController : ApiControllerBase
     private readonly AppDbContext _db;
     public StatsController(AppDbContext db) => _db = db;
 
+    // Admin: số liệu toàn hệ thống. User thường: chỉ số liệu của chính mình.
     [HttpGet("overview")]
     public async Task<ActionResult<StatsOverviewDto>> Overview()
     {
         var weekAgo = DateTime.UtcNow.AddDays(-7);
+
+        if (IsAdmin)
+        {
+            return new StatsOverviewDto(
+                TotalUsers: await _db.Users.CountAsync(),
+                ActiveUsers7d: await _db.Users.CountAsync(u => u.LastLoginAt != null && u.LastLoginAt > weekAgo),
+                TotalSessions: await _db.ChatSessions.CountAsync(),
+                TotalUserMessages: await _db.ChatMessages.CountAsync(m => m.Role == "user"),
+                TotalQuizAttempts: await _db.QuizAttempts.CountAsync(),
+                AvgQuizScore: await _db.QuizAttempts.AnyAsync() ? Math.Round(await _db.QuizAttempts.AverageAsync(a => (double)a.Score), 1) : 0,
+                TotalFlashcardReviews: await _db.FlashcardReviews.CountAsync());
+        }
+
+        var uid = UserId;
+        var myAttempts = _db.QuizAttempts.Where(a => a.UserId == uid);
         return new StatsOverviewDto(
-            TotalUsers: await _db.Users.CountAsync(),
-            ActiveUsers7d: await _db.Users.CountAsync(u => u.LastLoginAt != null && u.LastLoginAt > weekAgo),
-            TotalSessions: await _db.ChatSessions.CountAsync(),
-            TotalUserMessages: await _db.ChatMessages.CountAsync(m => m.Role == "user"),
-            TotalQuizAttempts: await _db.QuizAttempts.CountAsync(),
-            AvgQuizScore: await _db.QuizAttempts.AnyAsync() ? Math.Round(await _db.QuizAttempts.AverageAsync(a => (double)a.Score), 1) : 0,
-            TotalFlashcardReviews: await _db.FlashcardReviews.CountAsync());
+            TotalUsers: 0, // không áp dụng cho user thường (frontend ẩn 2 thẻ này)
+            ActiveUsers7d: 0,
+            TotalSessions: await _db.ChatSessions.CountAsync(s => s.UserId == uid),
+            TotalUserMessages: await _db.ChatMessages.CountAsync(m => m.Role == "user" && m.Session!.UserId == uid),
+            TotalQuizAttempts: await myAttempts.CountAsync(),
+            AvgQuizScore: await myAttempts.AnyAsync() ? Math.Round(await myAttempts.AverageAsync(a => (double)a.Score), 1) : 0,
+            TotalFlashcardReviews: await _db.FlashcardReviews.CountAsync(r => r.UserId == uid));
     }
 
     [HttpGet("activity")]
@@ -31,16 +47,25 @@ public class StatsController : ApiControllerBase
         days = Math.Clamp(days, 1, 365);
         var from = DateTime.UtcNow.Date.AddDays(-(days - 1));
 
-        var msgRaw = await _db.ChatMessages.Where(m => m.CreatedAt >= from)
-            .GroupBy(m => m.CreatedAt.Date)
-            .Select(g => new { g.Key, Count = g.Count() }).ToListAsync();
-        var userRaw = await _db.Users.Where(u => u.CreatedAt >= from)
-            .GroupBy(u => u.CreatedAt.Date)
-            .Select(g => new { g.Key, Count = g.Count() }).ToListAsync();
+        if (IsAdmin)
+        {
+            var msgRaw = await _db.ChatMessages.Where(m => m.CreatedAt >= from)
+                .GroupBy(m => m.CreatedAt.Date).Select(g => new { g.Key, Count = g.Count() }).ToListAsync();
+            var userRaw = await _db.Users.Where(u => u.CreatedAt >= from)
+                .GroupBy(u => u.CreatedAt.Date).Select(g => new { g.Key, Count = g.Count() }).ToListAsync();
+            return new StatsActivityDto(
+                FillDays(from, days, msgRaw.ToDictionary(x => x.Key, x => x.Count)),
+                FillDays(from, days, userRaw.ToDictionary(x => x.Key, x => x.Count)));
+        }
 
+        var uid = UserId;
+        var myMsg = await _db.ChatMessages
+            .Where(m => m.CreatedAt >= from && m.Role == "user" && m.Session!.UserId == uid)
+            .GroupBy(m => m.CreatedAt.Date).Select(g => new { g.Key, Count = g.Count() }).ToListAsync();
+        // user thường không có "người dùng mới" → trả mảng rỗng (frontend ẩn biểu đồ đó)
         return new StatsActivityDto(
-            FillDays(from, days, msgRaw.ToDictionary(x => x.Key, x => x.Count)),
-            FillDays(from, days, userRaw.ToDictionary(x => x.Key, x => x.Count)));
+            FillDays(from, days, myMsg.ToDictionary(x => x.Key, x => x.Count)),
+            new List<DayCountDto>());
     }
 
     [HttpGet("quiz")]
@@ -48,7 +73,10 @@ public class StatsController : ApiControllerBase
     {
         days = Math.Clamp(days, 1, 365);
         var from = DateTime.UtcNow.Date.AddDays(-(days - 1));
-        var attempts = await _db.QuizAttempts.ToListAsync();
+
+        var query = _db.QuizAttempts.AsQueryable();
+        if (!IsAdmin) { var uid = UserId; query = query.Where(a => a.UserId == uid); }
+        var attempts = await query.ToListAsync();
 
         string Bucket(int s) => s <= 20 ? "0–20" : s <= 40 ? "21–40" : s <= 60 ? "41–60" : s <= 80 ? "61–80" : "81–100";
         var buckets = new[] { "0–20", "21–40", "41–60", "61–80", "81–100" };

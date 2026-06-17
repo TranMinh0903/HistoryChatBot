@@ -65,6 +65,7 @@ public class QuizController : ApiControllerBase
             .ToListAsync();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet("leaderboard")]
     public async Task<ActionResult<List<LeaderboardEntryDto>>> Leaderboard([FromQuery] int limit = 10)
     {

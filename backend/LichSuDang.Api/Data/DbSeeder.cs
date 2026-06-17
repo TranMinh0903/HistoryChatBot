@@ -9,6 +9,20 @@ public static class DbSeeder
     {
         await db.Database.MigrateAsync();
 
+        // Tài khoản admin mặc định (đổi mật khẩu khi lên production!)
+        if (!await db.Users.AnyAsync(u => u.Role == Role.Admin))
+        {
+            db.Users.Add(new User
+            {
+                Username = "admin",
+                DisplayName = "Quản trị viên",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+                Role = Role.Admin,
+                LastLoginAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync();
+        }
+
         if (!await db.QuizQuestions.AnyAsync())
         {
             db.QuizQuestions.AddRange(Questions());

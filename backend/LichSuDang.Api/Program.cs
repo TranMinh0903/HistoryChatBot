@@ -9,6 +9,10 @@ using Microsoft.OpenApi;
 var builder = WebApplication.CreateBuilder(args);
 var cfg = builder.Configuration;
 
+// Railway/Render cấp cổng qua biến môi trường PORT → app lắng nghe đúng cổng đó.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port)) builder.WebHost.UseUrls($"http://+:{port}");
+
 // ----- Database -----
 builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseNpgsql(cfg.GetConnectionString("Default")
@@ -38,9 +42,11 @@ builder.Services.AddAuthorization();
 
 // ----- CORS (cho frontend Vite) -----
 const string CorsPolicy = "frontend";
+// Origin cho phép đọc từ config "Cors:Origins" (env Cors__Origins="https://app.vercel.app"), phân tách bằng dấu phẩy.
+var corsOrigins = (cfg["Cors:Origins"] ?? "http://localhost:5173,http://localhost:4173")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 builder.Services.AddCors(o => o.AddPolicy(CorsPolicy, p =>
-    p.WithOrigins("http://localhost:5173", "http://localhost:4173")
-     .AllowAnyHeader().AllowAnyMethod()));
+    p.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod()));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
