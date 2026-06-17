@@ -14,9 +14,13 @@ var port = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrEmpty(port)) builder.WebHost.UseUrls($"http://+:{port}");
 
 // ----- Database -----
-builder.Services.AddDbContext<AppDbContext>(o =>
-    o.UseNpgsql(cfg.GetConnectionString("Default")
-        ?? "Host=localhost;Database=lichsudang;Username=postgres;Password=postgres"));
+// Ưu tiên DATABASE_URL (Railway/Render/Neon cấp dạng postgres://user:pass@host:port/db),
+// nếu không có thì dùng ConnectionStrings:Default.
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+var connString = !string.IsNullOrWhiteSpace(databaseUrl)
+    ? ConvertDatabaseUrl(databaseUrl)
+    : (cfg.GetConnectionString("Default") ?? "Host=localhost;Database=lichsudang;Username=postgres;Password=postgres");
+builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connString));
 
 // ----- App services -----
 builder.Services.AddScoped<JwtTokenService>();
@@ -89,3 +93,15 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Chuyển postgres://user:pass@host:port/db  ->  chuỗi kết nối Npgsql (kèm SSL cho cloud).
+static string ConvertDatabaseUrl(string url)
+{
+    var uri = new Uri(url);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var db = uri.AbsolutePath.TrimStart('/');
+    var ssl = url.Contains("sslmode=", StringComparison.OrdinalIgnoreCase)
+        ? "" : ";SSL Mode=Require;Trust Server Certificate=true";
+    return $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={db};" +
+           $"Username={userInfo[0]};Password={Uri.UnescapeDataString(userInfo.ElementAtOrDefault(1) ?? "")}{ssl}";
+}
