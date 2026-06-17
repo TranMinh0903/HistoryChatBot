@@ -36,23 +36,31 @@ Web ChatBot AI hỗ trợ sinh viên ôn tập môn Lịch sử Đảng, giai đ
 
 ## Chạy dev
 
-### 1. Database (Docker)
+### Cách 1 — Docker (database + backend, khuyên dùng)
 ```bash
-docker compose up -d db        # PostgreSQL tại localhost:5432, Adminer tại localhost:8080
+# (tuỳ chọn) bật trả lời AI:  $env:GROQ_API_KEY="gsk_xxx"   trước khi up
+docker compose up -d --build
 ```
+Dựng 3 container:
 
-### 2. Backend (ASP.NET Core)
+| Container | URL | Vai trò |
+|---|---|---|
+| `lsd_api` | http://localhost:5000 (Swagger: `/swagger`) | Backend ASP.NET Core — tự migrate + seed |
+| `lsd_postgres` | localhost:5432 | PostgreSQL |
+| `lsd_adminer` | http://localhost:8081 | GUI xem DB (Server `db`, user/pass `postgres`, DB `lichsudang`) |
+
+> Port API cấu hình ở `docker-compose.yml` (`ports: "5000:8080"`) + `backend/Dockerfile` (`ASPNETCORE_URLS=http://+:8080`).
+
+### Cách 2 — Backend chạy thủ công (không Docker)
 ```bash
-# (tuỳ chọn) bật trả lời AI:  set GROQ_API_KEY=gsk_xxx   (Windows: $env:GROQ_API_KEY="gsk_xxx")
+docker compose up -d db        # cần Postgres
 cd backend
 dotnet run --project LichSuDang.Api --urls http://localhost:5000
-# API tại http://localhost:5000 · Swagger UI: http://localhost:5000/swagger
-# Tự động chạy migration + seed (18 câu quiz, 16 flashcards) khi khởi động.
 ```
-Cấu trúc: `backend/LichSuDang.Api/` (Domain, Data, Dtos, Services, Controllers).
-Chuỗi kết nối & Groq cấu hình trong `appsettings.json` (API key nên đặt qua env `GROQ_API_KEY`).
+> Không có `--urls` thì mặc định chạy **http://localhost:5205** (cấu hình ở `backend/LichSuDang.Api/Properties/launchSettings.json`).
+> Chuỗi kết nối & Groq cấu hình trong `appsettings.json` (API key nên đặt qua env `GROQ_API_KEY`).
 
-### 3. Frontend
+### Frontend
 ```bash
 cd frontend
 npm install
