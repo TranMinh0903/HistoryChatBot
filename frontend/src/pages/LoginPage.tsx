@@ -1,6 +1,16 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Star, Loader2 } from 'lucide-react'
+import {
+  BookOpenText,
+  ChartNoAxesCombined,
+  History,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  MessageSquareText,
+  Sparkles,
+  UserRound,
+} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { USE_MOCK } from '../api/client'
 import './LoginPage.css'
@@ -35,46 +45,71 @@ export default function LoginPage() {
     <div className="login">
       <div className="login-hero">
         <div className="login-hero-inner">
-          <div className="login-star"><Star size={40} fill="#FFCD00" stroke="#FFCD00" /></div>
-          <h1>ChatBot Lịch sử Đảng</h1>
-          <p className="login-period">Cộng sản Việt Nam · Giai đoạn 1954 – 1975</p>
-          <ul className="login-features">
-            <li>💬 Trò chuyện, hỏi đáp về các sự kiện lịch sử</li>
-            <li>🎮 Ôn tập bằng trắc nghiệm &amp; thẻ ghi nhớ</li>
-            <li>📊 Theo dõi tiến độ học tập</li>
+          <div className="login-brand">
+            <div className="login-brand-mark"><Sparkles size={26} /></div>
+            <span>VNR History AI</span>
+          </div>
+
+          <div className="login-kicker">Trợ lý học tập thông minh</div>
+          <h1>Ôn tập Lịch sử Đảng rõ ràng, mạch lạc hơn.</h1>
+          <p className="login-period">Tập trung giai đoạn 1954 - 1975, kết hợp hỏi đáp AI, quiz và flashcards.</p>
+
+          <ul className="login-features" aria-label="Tính năng chính">
+            <li><MessageSquareText size={18} /> Hỏi đáp theo ngữ cảnh, lưu lại lịch sử trò chuyện</li>
+            <li><BookOpenText size={18} /> Ôn tập bằng câu hỏi trắc nghiệm và thẻ ghi nhớ</li>
+            <li><ChartNoAxesCombined size={18} /> Theo dõi tiến độ học tập qua dashboard trực quan</li>
           </ul>
         </div>
       </div>
 
       <div className="login-form-wrap">
         <form className="login-form" onSubmit={submit}>
+          <div className="login-form-badge">
+            <History size={16} />
+            <span>Lịch sử Đảng Cộng sản Việt Nam</span>
+          </div>
+
           <h2>{mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}</h2>
           <p className="muted login-sub">
-            {mode === 'login' ? 'Chào mừng bạn trở lại!' : 'Bắt đầu hành trình ôn tập lịch sử'}
+            {mode === 'login'
+              ? 'Chào mừng bạn trở lại. Tiếp tục phiên ôn tập của bạn.'
+              : 'Bắt đầu hành trình ôn tập với không gian học tập cá nhân.'}
           </p>
 
           {mode === 'register' && (
             <div className="field">
               <label className="label">Họ và tên</label>
-              <input className="input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Nguyễn Văn A" />
+              <div className="login-input-shell">
+                <UserRound size={18} />
+                <input className="input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Nguyễn Văn A" />
+              </div>
             </div>
           )}
 
           <div className="field">
             <label className="label">Tên đăng nhập</label>
-            <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="username" autoFocus />
+            <div className="login-input-shell">
+              <UserRound size={18} />
+              <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="username" autoFocus />
+            </div>
           </div>
 
           {mode === 'register' && (
             <div className="field">
-              <label className="label">Email (tùy chọn)</label>
-              <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@fpt.edu.vn" />
+              <label className="label">Email tùy chọn</label>
+              <div className="login-input-shell">
+                <Mail size={18} />
+                <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@fpt.edu.vn" />
+              </div>
             </div>
           )}
 
           <div className="field">
             <label className="label">Mật khẩu</label>
-            <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+            <div className="login-input-shell">
+              <LockKeyhole size={18} />
+              <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Nhập mật khẩu" />
+            </div>
           </div>
 
           {error && <div className="login-error">{error}</div>}
@@ -93,8 +128,8 @@ export default function LoginPage() {
 
           {USE_MOCK && (
             <div className="login-demo">
-              ⚙️ Chế độ <b>demo</b> (chưa kết nối backend). Nhập tài khoản bất kỳ để vào.
-              Dùng tên <b>admin</b> để xem quyền quản trị.
+              <Sparkles size={16} />
+              <span>Chế độ <b>demo</b>: nhập tài khoản bất kỳ để vào. Dùng tên <b>admin</b> để xem quyền quản trị.</span>
             </div>
           )}
         </form>

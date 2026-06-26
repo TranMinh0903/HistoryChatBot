@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Plus, Send, Trash2, MessageSquare, Star, Loader2, AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Bot, Loader2, MessageSquare, Plus, Send, Sparkles, Trash2, UserRound } from 'lucide-react'
 import type { ChatSession, ChatMessage } from '../types'
 import * as chatApi from '../api/chat'
 import './ChatPage.css'
 
 const SUGGESTIONS = [
   'Hiệp định Genève 1954 có ý nghĩa gì?',
-  'Phong trào Đồng Khởi diễn ra ở đâu?',
-  'Ý nghĩa của cuộc Tổng tiến công Tết Mậu Thân 1968?',
-  'Tóm tắt diễn biến Đại thắng mùa Xuân 1975?',
+  'Đại hội Đảng lần III xác định nhiệm vụ gì?',
+  'Ý nghĩa của Tổng tiến công Tết Mậu Thân 1968?',
+  'Tóm tắt Chiến dịch Hồ Chí Minh năm 1975?',
 ]
 
 export default function ChatPage() {
@@ -19,8 +19,8 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
-  const [confirmId, setConfirmId] = useState<string | null>(null)   // xác nhận xóa
-  const [editingId, setEditingId] = useState<string | null>(null)   // đang đổi tên
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -38,20 +38,18 @@ export default function ChatPage() {
     setMessages(await chatApi.getMessages(id))
   }
 
-  // Bấm "Đoạn chat mới" chỉ mở khung trống — KHÔNG tạo session rỗng trong DB.
-  // Session được tạo (và tự đặt tên) khi gửi tin nhắn đầu tiên.
   function newChat() {
     setActiveId(null)
     setMessages([])
     setInput('')
   }
 
-  // ----- Đổi tên (double-click vào tiêu đề) -----
   function startRename(s: ChatSession, e: MouseEvent) {
     e.stopPropagation()
     setEditingId(s.id)
     setEditTitle(s.title)
   }
+
   async function saveRename(id: string) {
     const title = editTitle.trim()
     setEditingId(null)
@@ -61,11 +59,11 @@ export default function ChatPage() {
     try { await chatApi.renameSession(id, title) } catch { void loadSessions() }
   }
 
-  // ----- Xóa (modal xác nhận, không dùng confirm() mặc định) -----
   function askDelete(id: string, e: MouseEvent) {
     e.stopPropagation()
     setConfirmId(id)
   }
+
   async function doDelete() {
     const id = confirmId
     if (!id) return
@@ -82,7 +80,6 @@ export default function ChatPage() {
     setInput('')
     setSending(true)
 
-    // Tạo session ngay lần gửi đầu (nếu đang ở khung trống)
     let sid = activeId
     if (!sid) {
       const s = await chatApi.createSession()
@@ -97,82 +94,136 @@ export default function ChatPage() {
     try {
       const res = await chatApi.sendMessage(sid, content)
       setMessages((prev) => [...prev.filter((m) => m.id !== optimistic.id), res.userMessage, res.assistantMessage])
-      await loadSessions() // cập nhật tiêu đề (tự đặt theo câu hỏi đầu) & thứ tự
+      await loadSessions()
     } catch {
       setMessages((prev) => [
         ...prev,
-        { id: 'err-' + Date.now(), role: 'assistant', content: '⚠️ Xin lỗi, có lỗi khi gửi tin nhắn. Vui lòng thử lại.', createdAt: new Date().toISOString() },
+        { id: 'err-' + Date.now(), role: 'assistant', content: 'Xin lỗi, có lỗi khi gửi tin nhắn. Vui lòng thử lại.', createdAt: new Date().toISOString() },
       ])
     } finally {
       setSending(false)
     }
   }
 
+  const isEmpty = messages.length === 0 && !sending
+  const sessionGroups = ['Hôm nay', 'Hôm qua', '7 ngày trước']
+    .map((label) => ({
+      label,
+      items: sessions.filter((s) => {
+        const updated = new Date(s.updatedAt)
+        const today = new Date()
+        const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+        const startUpdated = new Date(updated.getFullYear(), updated.getMonth(), updated.getDate()).getTime()
+        const diffDays = Math.round((startToday - startUpdated) / 86400000)
+        if (label === 'Hôm nay') return diffDays === 0
+        if (label === 'Hôm qua') return diffDays === 1
+        return diffDays > 1
+      }),
+    }))
+    .filter((group) => group.items.length > 0)
+
+  const chatInput = (
+    <form
+      className="chat-input"
+      onSubmit={(e) => { e.preventDefault(); void send(input) }}
+    >
+      <textarea
+        className="textarea"
+        rows={1}
+        value={input}
+        placeholder="Hỏi bất kỳ điều gì về Lịch sử Đảng 1954-1975..."
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(input) }
+        }}
+      />
+      <button className="btn btn-primary chat-send" type="submit" disabled={sending || !input.trim()} aria-label="Gửi tin nhắn">
+        {sending ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
+      </button>
+    </form>
+  )
+
   return (
     <div className="chat">
-      {/* ----- Sidebar: lịch sử đoạn chat ----- */}
       <div className="chat-sessions">
+        <div className="chat-sessions-head">
+          <span>Chatbot học tập</span>
+          <strong>Cuộc trò chuyện</strong>
+          <p>AI hỗ trợ học tập Lịch sử Đảng Cộng sản Việt Nam.</p>
+        </div>
+
         <button className="btn btn-primary btn-block" onClick={newChat}>
           <Plus size={18} /> Đoạn chat mới
         </button>
+
         <div className="chat-sessions-list">
           {sessions.length === 0 && <p className="chat-sessions-empty muted">Chưa có đoạn chat nào</p>}
-          {sessions.map((s) => (
-            <div
-              key={s.id}
-              className={'chat-session-item' + (s.id === activeId ? ' active' : '')}
-              onClick={() => selectSession(s.id)}
-            >
-              <MessageSquare size={16} className="chat-session-icon" />
-              {editingId === s.id ? (
-                <input
-                  className="chat-session-edit"
-                  value={editTitle}
-                  autoFocus
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onBlur={() => saveRename(s.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') saveRename(s.id)
-                    if (e.key === 'Escape') setEditingId(null)
-                  }}
-                />
-              ) : (
-                <span
-                  className="chat-session-title"
-                  title="Double-click để đổi tên"
-                  onDoubleClick={(e) => startRename(s, e)}
+          {sessionGroups.map((group) => (
+            <section className="chat-session-group" key={group.label}>
+              <div className="chat-session-group-label">{group.label}</div>
+              {group.items.map((s) => (
+                <div
+                  key={s.id}
+                  className={'chat-session-item' + (s.id === activeId ? ' active' : '')}
+                  onClick={() => selectSession(s.id)}
                 >
-                  {s.title}
-                </span>
-              )}
-              <button className="chat-session-del" onClick={(e) => askDelete(s.id, e)} title="Xóa">
-                <Trash2 size={15} />
-              </button>
-            </div>
+                  <MessageSquare size={16} className="chat-session-icon" />
+                  {editingId === s.id ? (
+                    <input
+                      className="chat-session-edit"
+                      value={editTitle}
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      onBlur={() => saveRename(s.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveRename(s.id)
+                        if (e.key === 'Escape') setEditingId(null)
+                      }}
+                    />
+                  ) : (
+                    <span
+                      className="chat-session-title"
+                      title="Double-click để đổi tên"
+                      onDoubleClick={(e) => startRename(s, e)}
+                    >
+                      {s.title}
+                    </span>
+                  )}
+                  <button className="chat-session-del" onClick={(e) => askDelete(s.id, e)} title="Xóa">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </section>
           ))}
         </div>
       </div>
 
-      {/* ----- Cửa sổ chat ----- */}
-      <div className="chat-main">
+      <div className={'chat-main' + (isEmpty ? ' chat-main-empty' : '')}>
         <div className="chat-messages" ref={scrollRef}>
-          {messages.length === 0 && !sending ? (
+          {isEmpty ? (
             <div className="chat-empty">
-              <div className="chat-empty-star"><Star size={36} fill="#FFCD00" stroke="#FFCD00" /></div>
-              <h2>Trợ lý Lịch sử Đảng (1954 – 1975)</h2>
-              <p className="muted">Hãy đặt câu hỏi về các sự kiện, mốc thời gian, nhân vật lịch sử.</p>
-              <div className="chat-suggestions">
-                {SUGGESTIONS.map((q) => (
-                  <button key={q} className="chat-suggestion" onClick={() => send(q)}>{q}</button>
-                ))}
+              <div className="chat-empty-mark"><Sparkles size={28} /></div>
+              <h2>AI Chatbot Lịch sử Việt Nam</h2>
+              <p className="muted">Hỏi đáp về Lịch sử Đảng Cộng sản Việt Nam, giai đoạn 1954-1975.</p>
+              {chatInput}
+              <div className="chat-suggestions-wrap">
+                <span>Gợi ý</span>
+                <div className="chat-suggestions">
+                  {SUGGESTIONS.map((q) => (
+                    <button key={q} className="chat-suggestion" onClick={() => send(q)}>{q}</button>
+                  ))}
+                </div>
               </div>
             </div>
           ) : (
             <div className="chat-thread">
               {messages.map((m) => (
                 <div key={m.id} className={'msg msg-' + m.role + ' fade-in'}>
-                  <div className="msg-avatar">{m.role === 'user' ? 'Tôi' : <Star size={16} fill="#FFCD00" stroke="#FFCD00" />}</div>
+                  <div className="msg-avatar">
+                    {m.role === 'user' ? <UserRound size={17} /> : <Bot size={17} />}
+                  </div>
                   <div className="msg-bubble">
                     {m.role === 'assistant'
                       ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
@@ -182,7 +233,7 @@ export default function ChatPage() {
               ))}
               {sending && (
                 <div className="msg msg-assistant fade-in">
-                  <div className="msg-avatar"><Star size={16} fill="#FFCD00" stroke="#FFCD00" /></div>
+                  <div className="msg-avatar"><Bot size={17} /></div>
                   <div className="msg-bubble"><span className="typing"><i /><i /><i /></span></div>
                 </div>
               )}
@@ -190,27 +241,9 @@ export default function ChatPage() {
           )}
         </div>
 
-        <form
-          className="chat-input"
-          onSubmit={(e) => { e.preventDefault(); void send(input) }}
-        >
-          <textarea
-            className="textarea"
-            rows={1}
-            value={input}
-            placeholder="Nhập câu hỏi về lịch sử Đảng 1954–1975…"
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(input) }
-            }}
-          />
-          <button className="btn btn-primary chat-send" type="submit" disabled={sending || !input.trim()}>
-            {sending ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
-          </button>
-        </form>
+        {!isEmpty && chatInput}
       </div>
 
-      {/* ----- Modal xác nhận xóa ----- */}
       {confirmId && (
         <div className="chat-confirm-overlay" onClick={() => setConfirmId(null)}>
           <div className="chat-confirm card" onClick={(e) => e.stopPropagation()}>

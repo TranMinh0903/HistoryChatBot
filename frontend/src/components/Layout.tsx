@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { MessageSquare, Gamepad2, Layers, BarChart3, LogOut, Star, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import UserMenu from './UserMenu'
 import './Layout.css'
 
 const NAV = [
@@ -51,6 +52,7 @@ export default function Layout() {
       </aside>
 
       <main className="content">
+        <UserMenu />
         <Outlet />
       </main>
     </div>
