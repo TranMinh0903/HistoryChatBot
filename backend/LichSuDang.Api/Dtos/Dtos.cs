@@ -5,7 +5,9 @@ namespace LichSuDang.Api.Dtos;
 // ----- Auth -----
 public record RegisterRequest(string Username, string Password, string DisplayName, string? Email);
 public record LoginRequest(string Username, string Password);
-public record UserDto(Guid Id, string Username, string DisplayName, string? Email, int Role);
+public record GoogleLoginRequest(string Credential);          // ID token từ Google Identity Services
+public record UpdateAvatarRequest(string DataUrl);            // ảnh đã nén (data URL base64)
+public record UserDto(Guid Id, string Username, string DisplayName, string? Email, int Role, string? AvatarUrl);
 public record AuthResponse(string Token, UserDto User);
 
 // ----- Chat -----
@@ -46,7 +48,7 @@ public record StatsQuizDto(List<ScoreBucketDto> ScoreDistribution, List<DayCount
 // ----- Mapping helpers -----
 public static class Mapping
 {
-    public static UserDto ToDto(this User u) => new(u.Id, u.Username, u.DisplayName, u.Email, (int)u.Role);
+    public static UserDto ToDto(this User u) => new(u.Id, u.Username, u.DisplayName, u.Email, (int)u.Role, u.AvatarUrl);
     public static ChatSessionDto ToDto(this ChatSession s) => new(s.Id, s.Title, s.CreatedAt, s.UpdatedAt);
     public static ChatMessageDto ToDto(this ChatMessage m) => new(m.Id, m.Role, m.Content, m.CreatedAt, m.TokenCount);
     public static FlashcardDto ToDto(this Flashcard f) => new(f.Id, f.Front, f.Back, f.Topic, f.Period);

@@ -10,6 +10,8 @@ public class User
     public string PasswordHash { get; set; } = "";
     public string DisplayName { get; set; } = "";
     public Role Role { get; set; } = Role.User;
+    public string? AvatarUrl { get; set; }             // ảnh đại diện (data URL nén hoặc URL Google)
+    public string? GoogleId { get; set; }              // sub của Google (nếu đăng nhập bằng Google)
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
 

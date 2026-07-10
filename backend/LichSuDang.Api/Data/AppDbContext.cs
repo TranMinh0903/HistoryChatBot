@@ -25,7 +25,10 @@ public class AppDbContext : DbContext
             e.Property(x => x.Username).HasMaxLength(50).IsRequired();
             e.Property(x => x.Email).HasMaxLength(150);
             e.Property(x => x.DisplayName).HasMaxLength(100);
+            e.Property(x => x.GoogleId).HasMaxLength(50);
+            e.HasIndex(x => x.GoogleId);
             e.Property(x => x.Role).HasConversion<int>();
+            // AvatarUrl để kiểu text (mặc định) — chứa data URL ảnh đã nén hoặc URL Google
         });
 
         b.Entity<ChatSession>(e =>

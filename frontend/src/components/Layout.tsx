@@ -39,7 +39,11 @@ export default function Layout() {
 
         <div className="nav-foot">
           <div className="nav-user">
-            <div className="nav-avatar">{(user?.displayName ?? 'U').charAt(0).toUpperCase()}</div>
+            <div className="nav-avatar">
+              {user?.avatarUrl
+                ? <img src={user.avatarUrl} alt="" />
+                : (user?.displayName ?? 'U').charAt(0).toUpperCase()}
+            </div>
             <div className="nav-user-text">
               <strong>{user?.displayName}</strong>
               <span>{user?.role === 2 ? 'Quản trị' : 'Sinh viên'}</span>

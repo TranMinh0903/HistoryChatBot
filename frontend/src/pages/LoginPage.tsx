@@ -13,10 +13,11 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { USE_MOCK } from '../api/client'
+import GoogleLoginButton from '../components/GoogleLoginButton'
 import './LoginPage.css'
 
 export default function LoginPage() {
-  const { login, register } = useAuth()
+  const { login, register, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
@@ -36,6 +37,19 @@ export default function LoginPage() {
       navigate('/chat')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Có lỗi xảy ra, vui lòng thử lại')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogle = async (credential: string) => {
+    setError('')
+    setLoading(true)
+    try {
+      await loginWithGoogle(credential)
+      navigate('/chat')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đăng nhập Google thất bại')
     } finally {
       setLoading(false)
     }
@@ -118,6 +132,9 @@ export default function LoginPage() {
             {loading && <Loader2 size={18} className="spin" />}
             {mode === 'login' ? 'Đăng nhập' : 'Đăng ký'}
           </button>
+
+          <div className="login-divider"><span>hoặc</span></div>
+          <div className="login-google"><GoogleLoginButton onCredential={handleGoogle} /></div>
 
           <div className="login-switch">
             {mode === 'login' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}{' '}

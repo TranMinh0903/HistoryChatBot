@@ -5,11 +5,13 @@ import {
   Camera,
   Check,
   ChevronRight,
+  Loader2,
   LogOut,
   Moon,
   Settings,
   Shield,
   Sun,
+  Trash2,
   Upload,
   UserRound,
   X,
@@ -18,6 +20,8 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import * as statsApi from '../api/stats'
 import * as flashcardsApi from '../api/flashcards'
+import * as usersApi from '../api/users'
+import { resizeImageFile } from '../utils/image'
 import type { StatsOverview, StatsQuiz } from '../types'
 import './UserMenu.css'
 
@@ -25,7 +29,6 @@ const DEFAULT_AVATARS = ['#B22222', '#7f1117', '#C59A3A', '#2F5D50', '#4A5568']
 const profileKey = (userId?: string) => `lsd_profile_${userId ?? 'guest'}`
 
 interface ProfilePrefs {
-  avatar?: string
   avatarColor?: string
   joinedAt?: string
 }
@@ -37,13 +40,14 @@ interface LearningStats {
 }
 
 export default function UserMenu() {
-  const { user, logout } = useAuth()
+  const { user, logout, setUser } = useAuth()
   const { theme, setTheme } = useTheme()
   const [open, setOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [prefs, setPrefs] = useState<ProfilePrefs>({})
-  const [draft, setDraft] = useState<ProfilePrefs>({})
   const [learning, setLearning] = useState<LearningStats>({ flashcards: 0 })
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -56,13 +60,11 @@ export default function UserMenu() {
     if (!user) return
     const raw = localStorage.getItem(profileKey(user.id))
     const parsed = raw ? JSON.parse(raw) as ProfilePrefs : {}
-    const next = {
+    const next: ProfilePrefs = {
       joinedAt: parsed.joinedAt ?? new Date().toISOString(),
       avatarColor: parsed.avatarColor ?? DEFAULT_AVATARS[0],
-      avatar: parsed.avatar,
     }
     setPrefs(next)
-    setDraft(next)
     localStorage.setItem(profileKey(user.id), JSON.stringify(next))
   }, [user])
 
@@ -92,32 +94,60 @@ export default function UserMenu() {
 
   if (!user) return null
 
-  const avatarStyle = { backgroundColor: draft.avatarColor ?? prefs.avatarColor ?? DEFAULT_AVATARS[0] }
+  const color = prefs.avatarColor ?? DEFAULT_AVATARS[0]
   const role = user.role === 2 ? 'Admin' : 'Sinh viên'
   const joined = new Date(prefs.joinedAt ?? new Date()).toLocaleDateString('vi-VN')
   const averageScore = Math.round(learning.quiz?.avgScore ?? learning.overview?.avgQuizScore ?? 0)
   const streak = calculateStreak()
 
+  // Avatar dùng chung: ảnh thật từ backend (user.avatarUrl) hoặc chữ cái trên nền màu
+  const renderAvatar = () =>
+    user.avatarUrl
+      ? <img src={user.avatarUrl} alt="Avatar" />
+      : <span style={{ backgroundColor: color }}>{initials}</span>
+
   function openProfile() {
-    setDraft(prefs)
+    setError('')
     setSaved(false)
     setOpen(false)
     setProfileOpen(true)
   }
 
-  function handleUpload(event: ChangeEvent<HTMLInputElement>) {
+  async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
+    event.target.value = ''
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setDraft((prev) => ({ ...prev, avatar: String(reader.result) }))
-    reader.readAsDataURL(file)
+    setError('')
+    setUploading(true)
+    try {
+      const dataUrl = await resizeImageFile(file, 256, 0.82) // nén ~256px trước khi lưu
+      const updated = await usersApi.updateAvatar(dataUrl)
+      setUser(updated)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Tải ảnh thất bại')
+    } finally {
+      setUploading(false)
+    }
   }
 
-  function saveProfile() {
-    setPrefs(draft)
-    localStorage.setItem(profileKey(user?.id), JSON.stringify(draft))
+  async function handleRemoveAvatar() {
+    setError('')
+    setUploading(true)
+    try {
+      setUser(await usersApi.removeAvatar())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Xóa ảnh thất bại')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  function pickColor(next: string) {
+    const updated = { ...prefs, avatarColor: next }
+    setPrefs(updated)
+    localStorage.setItem(profileKey(user?.id), JSON.stringify(updated))
     setSaved(true)
-    window.setTimeout(() => setSaved(false), 1600)
+    window.setTimeout(() => setSaved(false), 1400)
   }
 
   function calculateStreak() {
@@ -134,15 +164,13 @@ export default function UserMenu() {
   return (
     <div className="user-menu-wrap" ref={menuRef}>
       <button className="account-trigger" onClick={() => setOpen((v) => !v)} aria-label="Mở menu người dùng">
-        {prefs.avatar ? <img src={prefs.avatar} alt="" /> : <span style={{ backgroundColor: prefs.avatarColor }}>{initials}</span>}
+        {renderAvatar()}
       </button>
 
       {open && (
         <div className="user-menu fade-in">
           <div className="user-menu-head">
-            <div className="user-menu-avatar">
-              {prefs.avatar ? <img src={prefs.avatar} alt="" /> : <span style={{ backgroundColor: prefs.avatarColor }}>{initials}</span>}
-            </div>
+            <div className="user-menu-avatar">{renderAvatar()}</div>
             <div>
               <strong>{user.displayName || user.username}</strong>
               <span>{role}</span>
@@ -189,28 +217,38 @@ export default function UserMenu() {
 
             <div className="profile-main">
               <div className="profile-avatar-panel">
-                <div className="profile-avatar" style={avatarStyle}>
-                  {draft.avatar ? <img src={draft.avatar} alt="Avatar" /> : <span>{initials}</span>}
+                <div className="profile-avatar" style={user.avatarUrl ? undefined : { backgroundColor: color }}>
+                  {user.avatarUrl ? <img src={user.avatarUrl} alt="Avatar" /> : <span>{initials}</span>}
+                  {uploading && <div className="profile-avatar-loading"><Loader2 size={22} className="spin" /></div>}
                 </div>
-                <label className="profile-upload">
-                  <Upload size={16} />
-                  Upload ảnh
-                  <input type="file" accept="image/*" onChange={handleUpload} />
-                </label>
-                <div className="profile-avatar-options" aria-label="Chọn avatar mặc định">
-                  {DEFAULT_AVATARS.map((color) => (
+                <div className="profile-avatar-buttons">
+                  <label className="profile-upload">
+                    <Upload size={16} />
+                    Upload ảnh
+                    <input type="file" accept="image/*" onChange={handleUpload} disabled={uploading} />
+                  </label>
+                  {user.avatarUrl && (
+                    <button className="profile-remove" onClick={handleRemoveAvatar} disabled={uploading}>
+                      <Trash2 size={15} /> Xóa ảnh
+                    </button>
+                  )}
+                </div>
+                <div className="profile-avatar-options" aria-label="Màu nền khi không có ảnh">
+                  {DEFAULT_AVATARS.map((c) => (
                     <button
-                      key={color}
-                      className={draft.avatarColor === color && !draft.avatar ? 'selected' : ''}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setDraft((prev) => ({ ...prev, avatar: undefined, avatarColor: color }))}
-                      aria-label="Chọn màu avatar"
+                      key={c}
+                      className={color === c && !user.avatarUrl ? 'selected' : ''}
+                      style={{ backgroundColor: c }}
+                      onClick={() => pickColor(c)}
+                      aria-label="Chọn màu nền avatar"
                     >
-                      {draft.avatarColor === color && !draft.avatar ? <Check size={13} /> : null}
+                      {color === c && !user.avatarUrl ? <Check size={13} /> : null}
                     </button>
                   ))}
                 </div>
-                <p>Upload/avatar hiện lưu mock trên trình duyệt vì backend chưa hỗ trợ.</p>
+                {error
+                  ? <p className="profile-avatar-error">{error}</p>
+                  : <p>Ảnh tự nén ~256px và lưu vào tài khoản (mọi thiết bị đều thấy).</p>}
               </div>
 
               <div className="profile-info">
@@ -244,7 +282,7 @@ export default function UserMenu() {
             <footer className="profile-actions">
               {saved && <span className="profile-saved"><Check size={15} /> Đã lưu</span>}
               <button className="btn btn-ghost" onClick={logout}><LogOut size={16} /> Đăng xuất</button>
-              <button className="btn btn-primary" onClick={saveProfile}>Lưu thay đổi</button>
+              <button className="btn btn-primary" onClick={() => setProfileOpen(false)}>Đóng</button>
             </footer>
           </section>
         </div>

@@ -250,6 +250,38 @@
   filter: saturate(1.05);
 }
 
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+  color: #a1938f;
+  font-size: .82rem;
+}
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e9dedb;
+}
+.login-google {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+.login-google > div { width: 100%; }
+.google-hint {
+  padding: 11px 13px;
+  border: 1px dashed rgba(178, 34, 34, .26);
+  border-radius: 12px;
+  background: #fff8e4;
+  color: #6a5b58;
+  font-size: .82rem;
+  text-align: center;
+}
+.google-hint code { font-size: .78rem; }
+
 .login-switch {
   margin-top: 18px;
   color: #756966;

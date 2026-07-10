@@ -33,6 +33,17 @@ export async function register(
   return data
 }
 
+export async function googleLogin(credential: string): Promise<AuthResponse> {
+  if (USE_MOCK) {
+    await delay()
+    const user: User = { id: uid(), username: 'google_user', displayName: 'Google User', role: 1 }
+    lsSet(USER_KEY, user)
+    return { token: 'mock-token', user }
+  }
+  const { data } = await http.post<AuthResponse>('/auth/google', { credential })
+  return data
+}
+
 export async function me(): Promise<User> {
   if (USE_MOCK) {
     await delay(120)

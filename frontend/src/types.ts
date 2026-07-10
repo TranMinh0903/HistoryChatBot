@@ -8,6 +8,7 @@ export interface User {
   displayName: string
   email?: string
   role: Role
+  avatarUrl?: string
 }
 
 export interface AuthResponse {
