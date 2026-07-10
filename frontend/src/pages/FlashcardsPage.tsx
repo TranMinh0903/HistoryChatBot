@@ -63,10 +63,6 @@ export default function FlashcardsPage() {
   }, [liveFiltered, memoryFilter, periodCards, studyIds])
 
   useEffect(() => {
-    if (index >= filtered.length) setIndex(0)
-  }, [filtered.length, index])
-
-  useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null
       if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return
@@ -108,8 +104,9 @@ export default function FlashcardsPage() {
     setStudyIds(snapshot.map((c) => c.id))
   }
 
-  const card = filtered[index]
   const total = filtered.length
+  const safeIndex = total ? Math.min(index, total - 1) : 0
+  const card = filtered[safeIndex]
   const completed = cards.length > 0 && reviewed.size >= cards.length
   const rememberedCount = periodCards.filter((c) => known.has(c.id)).length
   const partialCount = periodCards.filter((c) => partial.has(c.id)).length
@@ -229,7 +226,7 @@ export default function FlashcardsPage() {
               )}
               <button key={card.id} className={'fc-card' + (flipped ? ' flipped' : '')} onClick={() => setFlipped((f) => !f)}>
                 <div className="fc-card-meta">
-                  <span>Thẻ {index + 1}/{total}</span>
+                  <span>Thẻ {safeIndex + 1}/{total}</span>
                   {card.period && <span>{card.period}</span>}
                   {partial.has(card.id) && <span>Hơi nhớ</span>}
                   {known.has(card.id) && <span>Đã nhớ</span>}

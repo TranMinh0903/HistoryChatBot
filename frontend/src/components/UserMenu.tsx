@@ -39,12 +39,21 @@ interface LearningStats {
   flashcards: number
 }
 
+function readProfilePrefs(userId?: string): ProfilePrefs {
+  const raw = localStorage.getItem(profileKey(userId))
+  const parsed = raw ? JSON.parse(raw) as ProfilePrefs : {}
+  return {
+    joinedAt: parsed.joinedAt ?? new Date().toISOString(),
+    avatarColor: parsed.avatarColor ?? DEFAULT_AVATARS[0],
+  }
+}
+
 export default function UserMenu() {
   const { user, logout, setUser } = useAuth()
   const { theme, setTheme } = useTheme()
   const [open, setOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [prefs, setPrefs] = useState<ProfilePrefs>({})
+  const [prefsVersion, setPrefsVersion] = useState(0)
   const [learning, setLearning] = useState<LearningStats>({ flashcards: 0 })
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -56,17 +65,10 @@ export default function UserMenu() {
     return name.trim().charAt(0).toUpperCase()
   }, [user])
 
-  useEffect(() => {
-    if (!user) return
-    const raw = localStorage.getItem(profileKey(user.id))
-    const parsed = raw ? JSON.parse(raw) as ProfilePrefs : {}
-    const next: ProfilePrefs = {
-      joinedAt: parsed.joinedAt ?? new Date().toISOString(),
-      avatarColor: parsed.avatarColor ?? DEFAULT_AVATARS[0],
-    }
-    setPrefs(next)
-    localStorage.setItem(profileKey(user.id), JSON.stringify(next))
-  }, [user])
+  const prefs = useMemo(() => {
+    void prefsVersion
+    return readProfilePrefs(user?.id)
+  }, [user?.id, prefsVersion])
 
   useEffect(() => {
     if (!open) return
@@ -144,8 +146,8 @@ export default function UserMenu() {
 
   function pickColor(next: string) {
     const updated = { ...prefs, avatarColor: next }
-    setPrefs(updated)
     localStorage.setItem(profileKey(user?.id), JSON.stringify(updated))
+    setPrefsVersion((version) => version + 1)
     setSaved(true)
     window.setTimeout(() => setSaved(false), 1400)
   }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { AlertTriangle, Bot, Loader2, MessageSquare, Plus, Send, Sparkles, Trash2, UserRound } from 'lucide-react'
@@ -24,19 +24,31 @@ export default function ChatPage() {
   const [editTitle, setEditTitle] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { void loadSessions() }, [])
-  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }) }, [messages, sending])
+  const selectSession = useCallback(async (id: string) => {
+    setActiveId(id)
+    setMessages(await chatApi.getMessages(id))
+  }, [])
 
-  async function loadSessions() {
+  const loadSessions = useCallback(async () => {
     const list = await chatApi.listSessions()
     setSessions(list)
     if (list.length && !activeId) await selectSession(list[0].id)
-  }
+  }, [activeId, selectSession])
 
-  async function selectSession(id: string) {
-    setActiveId(id)
-    setMessages(await chatApi.getMessages(id))
-  }
+  useEffect(() => {
+    let cancelled = false
+    void chatApi.listSessions().then(async (list) => {
+      if (cancelled) return
+      setSessions(list)
+      if (!list.length) return
+      const messages = await chatApi.getMessages(list[0].id)
+      if (cancelled) return
+      setActiveId(list[0].id)
+      setMessages(messages)
+    })
+    return () => { cancelled = true }
+  }, [])
+  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }) }, [messages, sending])
 
   function newChat() {
     setActiveId(null)

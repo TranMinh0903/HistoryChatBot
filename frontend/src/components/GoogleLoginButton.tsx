@@ -31,7 +31,10 @@ function loadGis(): Promise<void> {
 export default function GoogleLoginButton({ onCredential }: { onCredential: (credential: string) => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const cbRef = useRef(onCredential)
-  cbRef.current = onCredential
+
+  useEffect(() => {
+    cbRef.current = onCredential
+  }, [onCredential])
 
   useEffect(() => {
     if (!CLIENT_ID) return
