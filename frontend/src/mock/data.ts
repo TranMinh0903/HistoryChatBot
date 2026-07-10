@@ -194,7 +194,7 @@ export function mockChatReply(message: string): string {
   for (const item of CHAT_KB) {
     if (item.keys.some(k => m.includes(k))) return item.answer
   }
-  return 'Mình là trợ lý ôn tập **Lịch sử Đảng Cộng sản Việt Nam giai đoạn 1954–1975**. Bạn có thể hỏi mình về các sự kiện như: Hiệp định Genève 1954, phong trào Đồng Khởi, Tết Mậu Thân 1968, Hiệp định Paris 1973, hay Đại thắng mùa Xuân 1975... \n\n*(Đây là chế độ demo. Khi kết nối backend + Groq, mình sẽ trả lời chi tiết hơn cho mọi câu hỏi.)*'
+  return 'Mình là trợ lý ôn tập **Lịch sử Đảng Cộng sản Việt Nam giai đoạn 1954–1975**. Bạn có thể hỏi mình về các sự kiện như: **Hiệp định Genève 1954**, **phong trào Đồng Khởi**, **Tết Mậu Thân 1968**, **Hiệp định Paris 1973**, hay **Đại thắng mùa Xuân 1975**.'
 }
 
 // ---------------- STATS (mock) ----------------
