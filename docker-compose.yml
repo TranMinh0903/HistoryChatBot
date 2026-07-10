@@ -39,6 +39,7 @@ services:
       - ConnectionStrings__Default=Host=db;Port=5432;Database=lichsudang;Username=postgres;Password=postgres
       - Jwt__Key=CHANGE_ME_super_secret_key_at_least_32_characters_long_123456
       - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
     depends_on:
       db:
         condition: service_healthy
