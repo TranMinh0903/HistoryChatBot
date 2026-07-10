@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { Plus, Pencil, Trash2, X, Loader2, Gamepad2, Layers } from 'lucide-react'
-import type { QuizQuestionAdmin, QuizQuestionInput, Flashcard, FlashcardInput, Option } from '../types'
+import { Plus, Pencil, Trash2, X, Loader2, Gamepad2, Layers, Users, Search, ShieldCheck, UserRound } from 'lucide-react'
+import type { QuizQuestionAdmin, QuizQuestionInput, Flashcard, FlashcardInput, Option, UserAdmin, Role } from '../types'
 import * as quizApi from '../api/quiz'
 import * as fcApi from '../api/flashcards'
+import * as usersApi from '../api/users'
 import { useAuth } from '../context/AuthContext'
 import './ManagePage.css'
 
@@ -14,10 +15,15 @@ const emptyQuiz: QuizQuestionInput = {
 const emptyFc: FlashcardInput = { front: '', back: '', topic: '', period: '' }
 const OPTS: Option[] = ['A', 'B', 'C', 'D']
 const DIFF = [[1, 'Dễ'], [2, 'Trung bình'], [3, 'Khó']] as const
+type ManageTab = 'users' | 'quiz' | 'flashcards'
+type RoleFilter = 'all' | 'admin' | 'student'
 
 export default function ManagePage() {
   const { user } = useAuth()
-  const [tab, setTab] = useState<'quiz' | 'flashcards'>('quiz')
+  const [tab, setTab] = useState<ManageTab>('users')
+  const [users, setUsers] = useState<UserAdmin[]>([])
+  const [userQuery, setUserQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [questions, setQuestions] = useState<QuizQuestionAdmin[]>([])
   const [flashcards, setFlashcards] = useState<Flashcard[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,22 +31,53 @@ export default function ManagePage() {
   const [quizModal, setQuizModal] = useState<{ id: string | null; form: QuizQuestionInput } | null>(null)
   const [fcModal, setFcModal] = useState<{ id: string | null; form: FlashcardInput } | null>(null)
 
-  useEffect(() => { void load() }, [])
+  useEffect(() => {
+    if (user?.role === 2) void load()
+  }, [user?.role])
 
   async function load() {
     setLoading(true)
     try {
-      const [qs, fc] = await Promise.all([quizApi.getQuestionsAdmin(), fcApi.getFlashcards()])
-      setQuestions(qs); setFlashcards(fc)
+      const [us, qs, fc] = await Promise.all([
+        usersApi.getUsersAdmin(),
+        quizApi.getQuestionsAdmin(),
+        fcApi.getFlashcards(),
+      ])
+      setUsers(us); setQuestions(qs); setFlashcards(fc)
     } finally { setLoading(false) }
   }
-
-  if (user?.role !== 2) return <Navigate to="/chat" replace />
 
   const setQ = <K extends keyof QuizQuestionInput>(key: K, val: QuizQuestionInput[K]) =>
     setQuizModal((m) => (m ? { ...m, form: { ...m.form, [key]: val } } : m))
   const setF = <K extends keyof FlashcardInput>(key: K, val: FlashcardInput[K]) =>
     setFcModal((m) => (m ? { ...m, form: { ...m.form, [key]: val } } : m))
+
+  const filteredUsers = useMemo(() => {
+    const q = userQuery.trim().toLowerCase()
+    return users.filter((u) => {
+      const matchesRole = roleFilter === 'all' || (roleFilter === 'admin' ? u.role === 2 : u.role === 1)
+      const matchesQuery = !q || [u.displayName, u.username, u.email ?? ''].some((value) => value.toLowerCase().includes(q))
+      return matchesRole && matchesQuery
+    })
+  }, [roleFilter, userQuery, users])
+
+  const userStats = useMemo(() => ({
+    total: users.length,
+    admins: users.filter((u) => u.role === 2).length,
+    students: users.filter((u) => u.role === 1).length,
+    active: users.filter((u) => u.lastLoginAt && Date.now() - new Date(u.lastLoginAt).getTime() <= 7 * 86400000).length,
+  }), [users])
+
+  async function changeUserRole(id: string, role: Role) {
+    await usersApi.updateUserRole(id, role)
+    await load()
+  }
+
+  async function delUser(id: string) {
+    if (!confirm('Xóa người dùng này? Toàn bộ dữ liệu học tập liên quan sẽ bị xóa.')) return
+    await usersApi.deleteUser(id)
+    await load()
+  }
 
   async function saveQuiz() {
     if (!quizModal || !quizModal.form.question.trim()) return
@@ -70,14 +107,19 @@ export default function ManagePage() {
     await fcApi.deleteFlashcard(id); await load()
   }
 
+  if (user?.role !== 2) return <Navigate to="/chat" replace />
+
   return (
     <div className="page">
       <div className="page-head">
-        <h1>Quản lý nội dung</h1>
-        <p>Thêm / sửa / xóa câu hỏi trắc nghiệm và thẻ ghi nhớ (chỉ quản trị viên)</p>
+        <h1>Quản lý hệ thống</h1>
+        <p>Theo dõi người dùng, phân quyền và quản lý nội dung học tập</p>
       </div>
       <div className="page-body">
         <div className="mng-tabs">
+          <button className={'mng-tab' + (tab === 'users' ? ' active' : '')} onClick={() => setTab('users')}>
+            <Users size={17} /> Người dùng ({users.length})
+          </button>
           <button className={'mng-tab' + (tab === 'quiz' ? ' active' : '')} onClick={() => setTab('quiz')}>
             <Gamepad2 size={17} /> Câu hỏi quiz ({questions.length})
           </button>
@@ -88,6 +130,104 @@ export default function ManagePage() {
 
         {loading ? (
           <p className="muted">Đang tải…</p>
+        ) : tab === 'users' ? (
+          <>
+            <section className="mng-user-stats" aria-label="Tổng quan người dùng">
+              <div className="mng-stat-card">
+                <span><Users size={17} /></span>
+                <p>Tổng người dùng</p>
+                <strong>{userStats.total}</strong>
+              </div>
+              <div className="mng-stat-card">
+                <span><ShieldCheck size={17} /></span>
+                <p>Quản trị viên</p>
+                <strong>{userStats.admins}</strong>
+              </div>
+              <div className="mng-stat-card">
+                <span><UserRound size={17} /></span>
+                <p>Sinh viên</p>
+                <strong>{userStats.students}</strong>
+              </div>
+              <div className="mng-stat-card">
+                <span><Search size={17} /></span>
+                <p>Hoạt động 7 ngày</p>
+                <strong>{userStats.active}</strong>
+              </div>
+            </section>
+
+            <div className="mng-user-tools">
+              <label className="mng-search">
+                <Search size={17} />
+                <input value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Tìm theo tên, tài khoản hoặc email" />
+              </label>
+              <div className="mng-role-filter">
+                {[
+                  ['all', 'Tất cả'],
+                  ['student', 'Sinh viên'],
+                  ['admin', 'Quản trị'],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    className={roleFilter === value ? 'active' : ''}
+                    onClick={() => setRoleFilter(value as RoleFilter)}
+                    type="button"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mng-user-list">
+              {filteredUsers.map((u) => {
+                const isMe = u.id === user.id
+                return (
+                  <article key={u.id} className="mng-user-row card">
+                    <div className="mng-user-avatar">
+                      {u.avatarUrl ? <img src={u.avatarUrl} alt="" referrerPolicy="no-referrer" /> : (u.displayName || u.username).charAt(0).toUpperCase()}
+                    </div>
+                    <div className="mng-user-main">
+                      <div className="mng-user-name">
+                        <strong>{u.displayName || u.username}</strong>
+                        {isMe && <span className="badge badge-gold">Bạn</span>}
+                        <span className={'badge ' + (u.role === 2 ? 'badge-red' : 'badge-green')}>
+                          {u.role === 2 ? 'Quản trị' : 'Sinh viên'}
+                        </span>
+                      </div>
+                      <div className="mng-user-meta">
+                        <span>@{u.username}</span>
+                        {u.email && <span>{u.email}</span>}
+                        <span>Tham gia {new Date(u.createdAt).toLocaleDateString('vi-VN')}</span>
+                        <span>{u.lastLoginAt ? `Hoạt động ${new Date(u.lastLoginAt).toLocaleDateString('vi-VN')}` : 'Chưa đăng nhập'}</span>
+                      </div>
+                    </div>
+                    <div className="mng-user-metrics">
+                      <span><b>{u.quizAttempts}</b> bài kiểm tra</span>
+                      <span><b>{Math.round(u.avgQuizScore)}</b> điểm TB</span>
+                      <span><b>{u.flashcardReviews}</b> lượt thẻ</span>
+                      <span><b>{u.chatSessions}</b> cuộc trò chuyện</span>
+                    </div>
+                    <div className="mng-user-actions">
+                      <select
+                        className="input"
+                        value={u.role}
+                        disabled={isMe}
+                        onChange={(e) => changeUserRole(u.id, Number(e.target.value) as Role)}
+                        aria-label="Vai trò người dùng"
+                      >
+                        <option value={1}>Sinh viên</option>
+                        <option value={2}>Quản trị</option>
+                      </select>
+                      <button className="mng-icon danger" disabled={isMe} title="Xóa người dùng" onClick={() => delUser(u.id)}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </article>
+                )
+              })}
+              {filteredUsers.length === 0 && <p className="mng-empty muted">Không có người dùng phù hợp với bộ lọc hiện tại.</p>}
+            </div>
+          </>
         ) : tab === 'quiz' ? (
           <>
             <button className="btn btn-primary mng-add" onClick={() => setQuizModal({ id: null, form: { ...emptyQuiz } })}>

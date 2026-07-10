@@ -11,6 +11,15 @@ export interface User {
   avatarUrl?: string
 }
 
+export interface UserAdmin extends User {
+  createdAt: string
+  lastLoginAt?: string
+  chatSessions: number
+  quizAttempts: number
+  avgQuizScore: number
+  flashcardReviews: number
+}
+
 export interface AuthResponse {
   token: string
   user: User

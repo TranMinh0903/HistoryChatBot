@@ -10,6 +10,212 @@
 
 .mng-add { margin-bottom: 16px; }
 
+/* Users */
+.mng-user-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mng-stat-card {
+  min-height: 104px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.mng-stat-card span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  color: var(--red-dark);
+  background: #fde2e0;
+}
+
+.mng-stat-card p {
+  color: var(--text-soft);
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.mng-stat-card strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--text);
+  font-size: 1.45rem;
+}
+
+.mng-user-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mng-search {
+  position: relative;
+  flex: 1;
+  max-width: 520px;
+}
+
+.mng-search svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  color: var(--text-muted);
+  transform: translateY(-50%);
+}
+
+.mng-search input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px 10px 42px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.mng-search input:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(218, 37, 29, .1);
+}
+
+.mng-role-filter {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.mng-role-filter button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: .86rem;
+  font-weight: 700;
+}
+
+.mng-role-filter button.active {
+  background: var(--red);
+  color: #fff;
+}
+
+.mng-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mng-user-row {
+  display: grid;
+  grid-template-columns: 44px minmax(220px, 1.2fr) minmax(320px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.mng-user-avatar {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #2F5D50;
+  color: #fff;
+  font-weight: 800;
+}
+
+.mng-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mng-user-name,
+.mng-user-meta,
+.mng-user-metrics,
+.mng-user-actions {
+  display: flex;
+  align-items: center;
+}
+
+.mng-user-name {
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mng-user-name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mng-user-meta {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 4px;
+  color: var(--text-soft);
+  font-size: .82rem;
+}
+
+.mng-user-metrics {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mng-user-metrics span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-soft);
+  font-size: .78rem;
+  white-space: nowrap;
+}
+
+.mng-user-metrics b {
+  color: var(--red-dark);
+}
+
+.mng-user-actions {
+  gap: 8px;
+}
+
+.mng-user-actions .input {
+  width: 118px;
+  min-height: 36px;
+  padding: 7px 9px;
+}
+
+.mng-icon:disabled,
+.mng-user-actions .input:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+}
+
+.mng-empty {
+  padding: 24px;
+  text-align: center;
+}
+
 /* List */
 .mng-list { display: flex; flex-direction: column; gap: 10px; }
 .mng-item { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; }
@@ -36,3 +242,37 @@
 .mng-form { padding: 18px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .mng-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .mng-modal-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px; border-top: 1px solid var(--border); }
+
+@media (max-width: 1180px) {
+  .mng-user-row {
+    grid-template-columns: 44px 1fr;
+  }
+
+  .mng-user-metrics,
+  .mng-user-actions {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 760px) {
+  .mng-user-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mng-user-tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mng-search {
+    max-width: none;
+  }
+
+  .mng-role-filter {
+    width: 100%;
+  }
+
+  .mng-role-filter button {
+    flex: 1;
+  }
+}
