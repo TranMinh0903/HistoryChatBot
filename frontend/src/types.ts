@@ -18,6 +18,9 @@ export interface UserAdmin extends User {
   quizAttempts: number
   avgQuizScore: number
   flashcardReviews: number
+  totalVisits: number
+  webUses: number
+  activityMap: number[]
 }
 
 export interface AuthResponse {

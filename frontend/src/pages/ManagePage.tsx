@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { Plus, Pencil, Trash2, X, Loader2, Gamepad2, Layers, Users, Search, ShieldCheck, UserRound } from 'lucide-react'
-import type { QuizQuestionAdmin, QuizQuestionInput, Flashcard, FlashcardInput, Option, UserAdmin, Role } from '../types'
+import { Plus, Pencil, Trash2, X, Loader2, Gamepad2, Layers, Users, Search } from 'lucide-react'
+import type { QuizQuestionAdmin, QuizQuestionInput, Flashcard, FlashcardInput, Option, UserAdmin } from '../types'
 import * as quizApi from '../api/quiz'
 import * as fcApi from '../api/flashcards'
 import * as usersApi from '../api/users'
@@ -16,14 +16,12 @@ const emptyFc: FlashcardInput = { front: '', back: '', topic: '', period: '' }
 const OPTS: Option[] = ['A', 'B', 'C', 'D']
 const DIFF = [[1, 'Dễ'], [2, 'Trung bình'], [3, 'Khó']] as const
 type ManageTab = 'users' | 'quiz' | 'flashcards'
-type RoleFilter = 'all' | 'admin' | 'student'
 
 export default function ManagePage() {
   const { user } = useAuth()
   const [tab, setTab] = useState<ManageTab>('users')
   const [users, setUsers] = useState<UserAdmin[]>([])
   const [userQuery, setUserQuery] = useState('')
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [questions, setQuestions] = useState<QuizQuestionAdmin[]>([])
   const [flashcards, setFlashcards] = useState<Flashcard[]>([])
   const [loading, setLoading] = useState(true)
@@ -54,24 +52,15 @@ export default function ManagePage() {
 
   const filteredUsers = useMemo(() => {
     const q = userQuery.trim().toLowerCase()
-    return users.filter((u) => {
-      const matchesRole = roleFilter === 'all' || (roleFilter === 'admin' ? u.role === 2 : u.role === 1)
-      const matchesQuery = !q || [u.displayName, u.username, u.email ?? ''].some((value) => value.toLowerCase().includes(q))
-      return matchesRole && matchesQuery
-    })
-  }, [roleFilter, userQuery, users])
+    return users.filter((u) => !q || [u.displayName, u.username, u.email ?? ''].some((value) => value.toLowerCase().includes(q)))
+  }, [userQuery, users])
 
   const userStats = useMemo(() => ({
     total: users.length,
-    admins: users.filter((u) => u.role === 2).length,
-    students: users.filter((u) => u.role === 1).length,
     active: users.filter((u) => u.lastLoginAt && Date.now() - new Date(u.lastLoginAt).getTime() <= 7 * 86400000).length,
+    visits: users.reduce((sum, u) => sum + u.totalVisits, 0),
+    uses: users.reduce((sum, u) => sum + u.webUses, 0),
   }), [users])
-
-  async function changeUserRole(id: string, role: Role) {
-    await usersApi.updateUserRole(id, role)
-    await load()
-  }
 
   async function delUser(id: string) {
     if (!confirm('Xóa người dùng này? Toàn bộ dữ liệu học tập liên quan sẽ bị xóa.')) return
@@ -113,7 +102,7 @@ export default function ManagePage() {
     <div className="page">
       <div className="page-head">
         <h1>Quản lý hệ thống</h1>
-        <p>Theo dõi người dùng, phân quyền và quản lý nội dung học tập</p>
+        <p>Theo dõi người dùng, lượt truy cập và quản lý nội dung học tập</p>
       </div>
       <div className="page-body">
         <div className="mng-tabs">
@@ -139,19 +128,19 @@ export default function ManagePage() {
                 <strong>{userStats.total}</strong>
               </div>
               <div className="mng-stat-card">
-                <span><ShieldCheck size={17} /></span>
-                <p>Quản trị viên</p>
-                <strong>{userStats.admins}</strong>
-              </div>
-              <div className="mng-stat-card">
-                <span><UserRound size={17} /></span>
-                <p>Sinh viên</p>
-                <strong>{userStats.students}</strong>
-              </div>
-              <div className="mng-stat-card">
                 <span><Search size={17} /></span>
                 <p>Hoạt động 7 ngày</p>
                 <strong>{userStats.active}</strong>
+              </div>
+              <div className="mng-stat-card">
+                <span><Search size={17} /></span>
+                <p>Lượt truy cập</p>
+                <strong>{userStats.visits}</strong>
+              </div>
+              <div className="mng-stat-card">
+                <span><Gamepad2 size={17} /></span>
+                <p>Lần sử dụng</p>
+                <strong>{userStats.uses}</strong>
               </div>
             </section>
 
@@ -160,22 +149,6 @@ export default function ManagePage() {
                 <Search size={17} />
                 <input value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Tìm theo tên, tài khoản hoặc email" />
               </label>
-              <div className="mng-role-filter">
-                {[
-                  ['all', 'Tất cả'],
-                  ['student', 'Sinh viên'],
-                  ['admin', 'Quản trị'],
-                ].map(([value, label]) => (
-                  <button
-                    key={value}
-                    className={roleFilter === value ? 'active' : ''}
-                    onClick={() => setRoleFilter(value as RoleFilter)}
-                    type="button"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             <div className="mng-user-list">
@@ -190,9 +163,6 @@ export default function ManagePage() {
                       <div className="mng-user-name">
                         <strong>{u.displayName || u.username}</strong>
                         {isMe && <span className="badge badge-gold">Bạn</span>}
-                        <span className={'badge ' + (u.role === 2 ? 'badge-red' : 'badge-green')}>
-                          {u.role === 2 ? 'Quản trị' : 'Sinh viên'}
-                        </span>
                       </div>
                       <div className="mng-user-meta">
                         <span>@{u.username}</span>
@@ -202,22 +172,17 @@ export default function ManagePage() {
                       </div>
                     </div>
                     <div className="mng-user-metrics">
+                      <span><b>{u.totalVisits}</b> lượt truy cập</span>
+                      <span><b>{u.webUses}</b> lần sử dụng</span>
                       <span><b>{u.quizAttempts}</b> bài kiểm tra</span>
-                      <span><b>{Math.round(u.avgQuizScore)}</b> điểm TB</span>
                       <span><b>{u.flashcardReviews}</b> lượt thẻ</span>
-                      <span><b>{u.chatSessions}</b> cuộc trò chuyện</span>
+                    </div>
+                    <div className="mng-user-activity" aria-label="Bản đồ hoạt động 14 ngày gần nhất">
+                      {u.activityMap.map((level, index) => (
+                        <i key={index} data-level={level} title={`${level} lượt hoạt động`} />
+                      ))}
                     </div>
                     <div className="mng-user-actions">
-                      <select
-                        className="input"
-                        value={u.role}
-                        disabled={isMe}
-                        onChange={(e) => changeUserRole(u.id, Number(e.target.value) as Role)}
-                        aria-label="Vai trò người dùng"
-                      >
-                        <option value={1}>Sinh viên</option>
-                        <option value={2}>Quản trị</option>
-                      </select>
                       <button className="mng-icon danger" disabled={isMe} title="Xóa người dùng" onClick={() => delUser(u.id)}>
                         <Trash2 size={16} />
                       </button>

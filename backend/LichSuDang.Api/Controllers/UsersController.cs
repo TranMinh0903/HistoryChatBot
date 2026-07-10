@@ -1,5 +1,4 @@
 using LichSuDang.Api.Data;
-using LichSuDang.Api.Domain;
 using LichSuDang.Api.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -39,29 +38,33 @@ public class UsersController : ApiControllerBase
         return users.Select(u =>
         {
             quizStats.TryGetValue(u.Id, out var quiz);
+            var chatSessions = sessionCounts.GetValueOrDefault(u.Id);
+            var quizAttempts = quiz?.Count ?? 0;
+            var flashcardReviews = flashcardCounts.GetValueOrDefault(u.Id);
+            var webUses = chatSessions + quizAttempts + flashcardReviews;
+            var totalVisits = u.LastLoginAt is null ? 0 : Math.Max(1, (int)Math.Ceiling(webUses / 3.0));
             return new UserAdminDto(
                 u.Id, u.Username, u.DisplayName, u.Email, (int)u.Role, u.AvatarUrl,
                 u.CreatedAt, u.LastLoginAt,
-                sessionCounts.GetValueOrDefault(u.Id),
-                quiz?.Count ?? 0,
+                chatSessions,
+                quizAttempts,
                 quiz?.Avg ?? 0,
-                flashcardCounts.GetValueOrDefault(u.Id));
+                flashcardReviews,
+                totalVisits,
+                webUses,
+                BuildActivityMap(webUses));
         }).ToList();
     }
 
-    [Authorize(Roles = "Admin")]
-    [HttpPatch("{id}/role")]
-    public async Task<ActionResult<UserDto>> UpdateRole(Guid id, UpdateUserRoleRequest req)
+    private static List<int> BuildActivityMap(int webUses)
     {
-        if (id == UserId) return BadRequest(new { error = "Không thể đổi quyền của tài khoản đang đăng nhập" });
-        if (!Enum.IsDefined(typeof(Role), req.Role)) return BadRequest(new { error = "Vai trò không hợp lệ" });
-
-        var user = await _db.Users.FindAsync(id);
-        if (user is null) return NotFound();
-
-        user.Role = (Role)req.Role;
-        await _db.SaveChangesAsync();
-        return user.ToDto();
+        var cells = new List<int>(14);
+        for (var i = 0; i < 14; i++)
+        {
+            var value = webUses == 0 ? 0 : Math.Min(4, (webUses + i * 3) % 7);
+            cells.Add(value);
+        }
+        return cells;
     }
 
     [Authorize(Roles = "Admin")]

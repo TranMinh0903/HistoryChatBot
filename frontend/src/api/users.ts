@@ -1,4 +1,4 @@
-import type { User, UserAdmin, Role } from '../types'
+import type { User, UserAdmin } from '../types'
 import { USE_MOCK, http, delay, lsGet, lsSet } from './client'
 
 const USER_KEY = 'lsd_user'
@@ -7,7 +7,15 @@ const USERS_KEY = 'lsd_admin_users'
 function mockUsers(): UserAdmin[] {
   const current = lsGet<User | null>(USER_KEY, null)
   const saved = lsGet<UserAdmin[] | null>(USERS_KEY, null)
-  if (saved) return saved
+  const map = (seed: number) => Array.from({ length: 14 }, (_, i) => (seed + i * 2) % 5)
+  if (saved) {
+    return saved.map((user, index) => ({
+      ...user,
+      totalVisits: user.totalVisits ?? Math.max(1, Math.ceil((user.chatSessions + user.quizAttempts + user.flashcardReviews) / 3)),
+      webUses: user.webUses ?? (user.chatSessions + user.quizAttempts + user.flashcardReviews),
+      activityMap: user.activityMap ?? map(index + 1),
+    }))
+  }
 
   const now = new Date()
   const daysAgo = (days: number) => new Date(now.getTime() - days * 86400000).toISOString()
@@ -25,6 +33,9 @@ function mockUsers(): UserAdmin[] {
       quizAttempts: 12,
       avgQuizScore: 86,
       flashcardReviews: 74,
+      totalVisits: 36,
+      webUses: 104,
+      activityMap: map(4),
     },
     {
       id: 'student-1',
@@ -38,6 +49,9 @@ function mockUsers(): UserAdmin[] {
       quizAttempts: 7,
       avgQuizScore: 78,
       flashcardReviews: 42,
+      totalVisits: 18,
+      webUses: 58,
+      activityMap: map(2),
     },
     {
       id: 'student-2',
@@ -51,6 +65,9 @@ function mockUsers(): UserAdmin[] {
       quizAttempts: 3,
       avgQuizScore: 64,
       flashcardReviews: 21,
+      totalVisits: 9,
+      webUses: 29,
+      activityMap: map(1),
     },
   ]
   lsSet(USERS_KEY, base)
@@ -86,18 +103,6 @@ export async function getUsersAdmin(): Promise<UserAdmin[]> {
     return mockUsers()
   }
   const { data } = await http.get<UserAdmin[]>('/users/manage')
-  return data
-}
-
-export async function updateUserRole(id: string, role: Role): Promise<User> {
-  if (USE_MOCK) {
-    await delay(120)
-    const users = mockUsers().map((user) => (user.id === id ? { ...user, role } : user))
-    lsSet(USERS_KEY, users)
-    const updated = users.find((user) => user.id === id)!
-    return updated
-  }
-  const { data } = await http.patch<User>(`/users/${id}/role`, { role })
   return data
 }
 

@@ -51,13 +51,7 @@
   font-size: 1.45rem;
 }
 
-.mng-user-tools {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 16px;
-}
+.mng-user-tools { margin-bottom: 16px; }
 
 .mng-search {
   position: relative;
@@ -90,33 +84,6 @@
   box-shadow: 0 0 0 3px rgba(218, 37, 29, .1);
 }
 
-.mng-role-filter {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-}
-
-.mng-role-filter button {
-  min-height: 34px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--text-soft);
-  cursor: pointer;
-  font: inherit;
-  font-size: .86rem;
-  font-weight: 700;
-}
-
-.mng-role-filter button.active {
-  background: var(--red);
-  color: #fff;
-}
-
 .mng-user-list {
   display: flex;
   flex-direction: column;
@@ -125,7 +92,7 @@
 
 .mng-user-row {
   display: grid;
-  grid-template-columns: 44px minmax(220px, 1.2fr) minmax(320px, 1fr) auto;
+  grid-template-columns: 44px minmax(220px, 1.05fr) minmax(280px, 1fr) 154px auto;
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
@@ -195,6 +162,28 @@
   color: var(--red-dark);
 }
 
+.mng-user-activity {
+  display: grid;
+  grid-template-columns: repeat(7, 14px);
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.mng-user-activity i {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: #f3e8df;
+}
+
+.mng-user-activity i[data-level="1"] { background: #f8d8b4; }
+.mng-user-activity i[data-level="2"] { background: #f0b56e; }
+.mng-user-activity i[data-level="3"] { background: #dc7b3a; }
+.mng-user-activity i[data-level="4"] { background: #b22222; }
+
 .mng-user-actions {
   gap: 8px;
 }
@@ -249,6 +238,7 @@
   }
 
   .mng-user-metrics,
+  .mng-user-activity,
   .mng-user-actions {
     grid-column: 2;
   }
@@ -259,20 +249,7 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .mng-user-tools {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
   .mng-search {
     max-width: none;
-  }
-
-  .mng-role-filter {
-    width: 100%;
-  }
-
-  .mng-role-filter button {
-    flex: 1;
   }
 }

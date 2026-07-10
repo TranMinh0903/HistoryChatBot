@@ -10,8 +10,8 @@ public record UpdateAvatarRequest(string DataUrl);            // ảnh đã nén
 public record UserDto(Guid Id, string Username, string DisplayName, string? Email, int Role, string? AvatarUrl);
 public record AuthResponse(string Token, UserDto User);
 public record UserAdminDto(Guid Id, string Username, string DisplayName, string? Email, int Role, string? AvatarUrl,
-    DateTime CreatedAt, DateTime? LastLoginAt, int ChatSessions, int QuizAttempts, double AvgQuizScore, int FlashcardReviews);
-public record UpdateUserRoleRequest(int Role);
+    DateTime CreatedAt, DateTime? LastLoginAt, int ChatSessions, int QuizAttempts, double AvgQuizScore,
+    int FlashcardReviews, int TotalVisits, int WebUses, List<int> ActivityMap);
 
 // ----- Chat -----
 public record ChatSessionDto(Guid Id, string Title, DateTime CreatedAt, DateTime UpdatedAt);
