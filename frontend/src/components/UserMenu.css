@@ -443,6 +443,11 @@
   padding: 0 28px 24px;
 }
 
+.achievement-stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding-top: 24px;
+}
+
 .profile-stat {
   min-height: 112px;
   padding: 14px;

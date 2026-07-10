@@ -8,7 +8,6 @@ import {
   Loader2,
   LogOut,
   Moon,
-  Settings,
   Shield,
   Sun,
   Trash2,
@@ -39,6 +38,8 @@ interface LearningStats {
   flashcards: number
 }
 
+type ProfileModal = 'profile' | 'achievements'
+
 function readProfilePrefs(userId?: string): ProfilePrefs {
   const raw = localStorage.getItem(profileKey(userId))
   const parsed = raw ? JSON.parse(raw) as ProfilePrefs : {}
@@ -52,7 +53,7 @@ export default function UserMenu() {
   const { user, logout, setUser } = useAuth()
   const { theme, setTheme } = useTheme()
   const [open, setOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
+  const [profileModal, setProfileModal] = useState<ProfileModal | null>(null)
   const [prefsVersion, setPrefsVersion] = useState(0)
   const [learning, setLearning] = useState<LearningStats>({ flashcards: 0 })
   const [uploading, setUploading] = useState(false)
@@ -80,7 +81,7 @@ export default function UserMenu() {
   }, [open])
 
   useEffect(() => {
-    if (!profileOpen) return
+    if (!profileModal) return
     void Promise.allSettled([
       statsApi.getOverview(),
       statsApi.getQuizStats(),
@@ -92,7 +93,7 @@ export default function UserMenu() {
         flashcards: flashcards.status === 'fulfilled' ? flashcards.value.length : 0,
       })
     })
-  }, [profileOpen])
+  }, [profileModal])
 
   if (!user) return null
 
@@ -100,6 +101,9 @@ export default function UserMenu() {
   const role = user.role === 2 ? 'Admin' : 'Sinh viên'
   const joined = new Date(prefs.joinedAt ?? new Date()).toLocaleDateString('vi-VN')
   const averageScore = Math.round(learning.quiz?.avgScore ?? learning.overview?.avgQuizScore ?? 0)
+  const bestScore = learning.quiz?.bestScore ?? 0
+  const quizAttempts = learning.overview?.totalQuizAttempts ?? 0
+  const flashcardReviews = learning.overview?.totalFlashcardReviews ?? 0
   const streak = calculateStreak()
 
   // Avatar dùng chung: ảnh thật từ backend (user.avatarUrl) hoặc chữ cái trên nền màu
@@ -108,11 +112,11 @@ export default function UserMenu() {
       ? <img src={user.avatarUrl} alt="Avatar" referrerPolicy="no-referrer" />
       : <span style={{ backgroundColor: color }}>{initials}</span>
 
-  function openProfile() {
+  function openModal(modal: ProfileModal) {
     setError('')
     setSaved(false)
     setOpen(false)
-    setProfileOpen(true)
+    setProfileModal(modal)
   }
 
   async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -179,9 +183,8 @@ export default function UserMenu() {
             </div>
           </div>
           <div className="user-menu-sep" />
-          <button onClick={openProfile}><UserRound size={17} /> Hồ sơ <ChevronRight size={16} /></button>
-          <button onClick={openProfile}><Settings size={17} /> Cài đặt <ChevronRight size={16} /></button>
-          <button onClick={openProfile}><Award size={17} /> Thành tích <ChevronRight size={16} /></button>
+          <button onClick={() => openModal('profile')}><UserRound size={17} /> Hồ sơ <ChevronRight size={16} /></button>
+          <button onClick={() => openModal('achievements')}><Award size={17} /> Thành tích <ChevronRight size={16} /></button>
           <div className="theme-menu-row">
             <div className="theme-menu-label">
               <Moon size={17} />
@@ -204,20 +207,21 @@ export default function UserMenu() {
         </div>
       )}
 
-      {profileOpen && (
-        <div className="profile-overlay" onClick={() => setProfileOpen(false)}>
+      {profileModal && (
+        <div className="profile-overlay" onClick={() => setProfileModal(null)}>
           <section className="profile-dialog" onClick={(e) => e.stopPropagation()}>
             <header className="profile-head">
               <div>
-                <span>Hồ sơ cá nhân</span>
-                <h2>{user.displayName || user.username}</h2>
+                <span>{profileModal === 'profile' ? 'Hồ sơ cá nhân' : 'Thành tích học tập'}</span>
+                <h2>{profileModal === 'profile' ? (user.displayName || user.username) : 'Quiz và flashcards'}</h2>
               </div>
-              <button className="profile-icon-btn" onClick={() => setProfileOpen(false)} aria-label="Đóng">
+              <button className="profile-icon-btn" onClick={() => setProfileModal(null)} aria-label="Đóng">
                 <X size={18} />
               </button>
             </header>
 
-            <div className="profile-main">
+            {profileModal === 'profile' ? (
+              <div className="profile-main">
               <div className="profile-avatar-panel">
                 <div className="profile-avatar" style={user.avatarUrl ? undefined : { backgroundColor: color }}>
                   {user.avatarUrl ? <img src={user.avatarUrl} alt="Avatar" referrerPolicy="no-referrer" /> : <span>{initials}</span>}
@@ -272,19 +276,20 @@ export default function UserMenu() {
                 </div>
               </div>
             </div>
-
-            <div className="profile-stats">
-              <ProfileStat label="Tổng cuộc trò chuyện" value={learning.overview?.totalSessions ?? 0} icon={<UserRound size={17} />} />
-              <ProfileStat label="Tổng quiz đã làm" value={learning.overview?.totalQuizAttempts ?? 0} icon={<BarChart3 size={17} />} />
-              <ProfileStat label="Tổng flashcards" value={learning.flashcards} icon={<Camera size={17} />} />
-              <ProfileStat label="Điểm TB quiz" value={`${averageScore}%`} icon={<Award size={17} />} />
-              <ProfileStat label="Streak học tập" value={`${streak} ngày`} icon={<Check size={17} />} />
+            ) : (
+            <div className="profile-stats achievement-stats">
+              <ProfileStat label="Bài kiểm tra đã làm" value={quizAttempts} icon={<BarChart3 size={17} />} />
+              <ProfileStat label="Điểm trung bình" value={`${averageScore}%`} icon={<Award size={17} />} />
+              <ProfileStat label="Điểm cao nhất" value={`${bestScore}%`} icon={<Check size={17} />} />
+              <ProfileStat label="Chuỗi làm quiz" value={`${streak} ngày`} icon={<UserRound size={17} />} />
+              <ProfileStat label="Lượt học thẻ ghi nhớ" value={flashcardReviews} icon={<Camera size={17} />} />
             </div>
+            )}
 
             <footer className="profile-actions">
               {saved && <span className="profile-saved"><Check size={15} /> Đã lưu</span>}
-              <button className="btn btn-ghost" onClick={logout}><LogOut size={16} /> Đăng xuất</button>
-              <button className="btn btn-primary" onClick={() => setProfileOpen(false)}>Đóng</button>
+              {profileModal === 'profile' && <button className="btn btn-ghost" onClick={logout}><LogOut size={16} /> Đăng xuất</button>}
+              <button className="btn btn-primary" onClick={() => setProfileModal(null)}>Đóng</button>
             </footer>
           </section>
         </div>
