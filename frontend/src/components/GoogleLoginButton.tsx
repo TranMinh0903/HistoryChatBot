@@ -28,7 +28,13 @@ function loadGis(): Promise<void> {
   return scriptPromise
 }
 
-export default function GoogleLoginButton({ onCredential }: { onCredential: (credential: string) => void }) {
+export default function GoogleLoginButton({
+  onCredential,
+  onUnavailable,
+}: {
+  onCredential: (credential: string) => void
+  onUnavailable?: () => void
+}) {
   const ref = useRef<HTMLDivElement>(null)
   const cbRef = useRef(onCredential)
 
@@ -55,9 +61,9 @@ export default function GoogleLoginButton({ onCredential }: { onCredential: (cre
 
   if (!CLIENT_ID) {
     return (
-      <div className="google-hint">
-        Chưa cấu hình <code>VITE_GOOGLE_CLIENT_ID</code> — đăng nhập Google tạm ẩn.
-      </div>
+      <button className="google-fallback-btn" type="button" onClick={onUnavailable}>
+        <span aria-hidden="true">G</span> Đăng nhập với Google
+      </button>
     )
   }
   return <div className="google-btn" ref={ref} />

@@ -271,16 +271,38 @@
   min-height: 44px;
 }
 .login-google > div { width: 100%; }
-.google-hint {
-  padding: 11px 13px;
-  border: 1px dashed rgba(178, 34, 34, .26);
-  border-radius: 12px;
-  background: #fff8e4;
-  color: #6a5b58;
-  font-size: .82rem;
-  text-align: center;
+.google-fallback-btn {
+  width: 100%;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #e9dedb;
+  border-radius: 14px;
+  background: #fff;
+  color: #3a2323;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
-.google-hint code { font-size: .78rem; }
+.google-fallback-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(178, 34, 34, .24);
+  background: #fffdfb;
+  box-shadow: 0 12px 24px rgba(40, 32, 30, .08);
+}
+.google-fallback-btn span {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #B22222;
+  background: #fff2ef;
+  font-weight: 900;
+}
 
 .login-switch {
   margin-top: 18px;

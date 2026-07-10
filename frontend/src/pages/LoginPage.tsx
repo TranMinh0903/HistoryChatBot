@@ -55,23 +55,27 @@ export default function LoginPage() {
     }
   }
 
+  const handleGoogleUnavailable = () => {
+    setError('Đăng nhập Google đang được chuẩn bị. Vui lòng dùng tài khoản thường trong lúc này.')
+  }
+
   return (
     <div className="login">
       <div className="login-hero">
         <div className="login-hero-inner">
           <div className="login-brand">
             <div className="login-brand-mark"><Sparkles size={26} /></div>
-            <span>VNR History AI</span>
+            <span>VNR History</span>
           </div>
 
           <div className="login-kicker">Trợ lý học tập thông minh</div>
           <h1>Ôn tập Lịch sử Đảng rõ ràng, mạch lạc hơn.</h1>
-          <p className="login-period">Tập trung giai đoạn 1954 - 1975, kết hợp hỏi đáp AI, quiz và flashcards.</p>
+          <p className="login-period">Tập trung giai đoạn 1954 - 1975, kết hợp hỏi đáp thông minh, bài kiểm tra và thẻ ghi nhớ.</p>
 
           <ul className="login-features" aria-label="Tính năng chính">
             <li><MessageSquareText size={18} /> Hỏi đáp theo ngữ cảnh, lưu lại lịch sử trò chuyện</li>
             <li><BookOpenText size={18} /> Ôn tập bằng câu hỏi trắc nghiệm và thẻ ghi nhớ</li>
-            <li><ChartNoAxesCombined size={18} /> Theo dõi tiến độ học tập qua dashboard trực quan</li>
+            <li><ChartNoAxesCombined size={18} /> Theo dõi tiến độ học tập qua bảng thống kê trực quan</li>
           </ul>
         </div>
       </div>
@@ -134,7 +138,9 @@ export default function LoginPage() {
           </button>
 
           <div className="login-divider"><span>hoặc</span></div>
-          <div className="login-google"><GoogleLoginButton onCredential={handleGoogle} /></div>
+          <div className="login-google">
+            <GoogleLoginButton onCredential={handleGoogle} onUnavailable={handleGoogleUnavailable} />
+          </div>
 
           <div className="login-switch">
             {mode === 'login' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}{' '}
@@ -146,7 +152,7 @@ export default function LoginPage() {
           {USE_MOCK && (
             <div className="login-demo">
               <Sparkles size={16} />
-              <span>Chế độ <b>demo</b>: nhập tài khoản bất kỳ để vào. Dùng tên <b>admin</b> để xem quyền quản trị.</span>
+              <span>Bạn có thể nhập tài khoản bất kỳ để trải nghiệm. Quyền quản trị sẽ do nhà trường cung cấp.</span>
             </div>
           )}
         </form>
