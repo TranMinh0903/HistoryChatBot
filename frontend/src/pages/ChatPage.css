@@ -226,7 +226,7 @@
   pointer-events: none;
   opacity: .125;
   background-image: url('/images/trong-dong-watermark.jpg');
-  background-position: 58% center;
+  background-position: center;
   background-repeat: no-repeat;
   background-size: min(735px, 61vw);
   filter: grayscale(.12) sepia(.28) saturate(1.04) contrast(1.08);
@@ -239,10 +239,16 @@
   padding: 32px 24px;
 }
 
+.chat-main-empty .chat-messages::before {
+  opacity: .105;
+  background-position: center 47%;
+  background-size: clamp(520px, 62vw, 760px);
+}
+
 /* Empty state */
 .chat-empty {
   width: 100%;
-  max-width: 980px;
+  max-width: 760px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -256,7 +262,7 @@
   height: 54px;
   display: grid;
   place-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
   border: 1px solid rgba(178, 34, 34, .12);
   border-radius: 18px;
   color: #B22222;
@@ -265,7 +271,7 @@
 }
 
 .chat-empty h2 {
-  max-width: 780px;
+  max-width: 760px;
   color: #202123;
   font-size: clamp(2rem, 4vw, 3.3rem);
   line-height: 1.08;
@@ -277,6 +283,11 @@
   margin-top: 12px;
   color: #6f6f76;
   font-size: 1.02rem;
+}
+
+.chat-empty .chat-input,
+.chat-empty .chat-suggestions-wrap {
+  width: min(100%, 650px);
 }
 
 .chat-suggestions-wrap {
