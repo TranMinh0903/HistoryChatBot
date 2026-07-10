@@ -41,7 +41,7 @@ export default function Layout() {
           <div className="nav-user">
             <div className="nav-avatar">
               {user?.avatarUrl
-                ? <img src={user.avatarUrl} alt="" />
+                ? <img src={user.avatarUrl} alt="" referrerPolicy="no-referrer" />
                 : (user?.displayName ?? 'U').charAt(0).toUpperCase()}
             </div>
             <div className="nav-user-text">

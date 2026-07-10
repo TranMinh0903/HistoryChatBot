@@ -103,7 +103,7 @@ export default function UserMenu() {
   // Avatar dùng chung: ảnh thật từ backend (user.avatarUrl) hoặc chữ cái trên nền màu
   const renderAvatar = () =>
     user.avatarUrl
-      ? <img src={user.avatarUrl} alt="Avatar" />
+      ? <img src={user.avatarUrl} alt="Avatar" referrerPolicy="no-referrer" />
       : <span style={{ backgroundColor: color }}>{initials}</span>
 
   function openProfile() {
@@ -218,7 +218,7 @@ export default function UserMenu() {
             <div className="profile-main">
               <div className="profile-avatar-panel">
                 <div className="profile-avatar" style={user.avatarUrl ? undefined : { backgroundColor: color }}>
-                  {user.avatarUrl ? <img src={user.avatarUrl} alt="Avatar" /> : <span>{initials}</span>}
+                  {user.avatarUrl ? <img src={user.avatarUrl} alt="Avatar" referrerPolicy="no-referrer" /> : <span>{initials}</span>}
                   {uploading && <div className="profile-avatar-loading"><Loader2 size={22} className="spin" /></div>}
                 </div>
                 <div className="profile-avatar-buttons">
