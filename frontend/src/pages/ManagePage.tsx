@@ -17,6 +17,18 @@ const OPTS: Option[] = ['A', 'B', 'C', 'D']
 const DIFF = [[1, 'Dễ'], [2, 'Trung bình'], [3, 'Khó']] as const
 type ManageTab = 'users' | 'quiz' | 'flashcards'
 
+function linePoints(values: number[]) {
+  const width = 150
+  const height = 44
+  const max = Math.max(1, ...values)
+  const step = values.length > 1 ? width / (values.length - 1) : width
+  return values.map((value, index) => {
+    const x = Math.round(index * step)
+    const y = Math.round(height - (value / max) * (height - 8) - 4)
+    return `${x},${y}`
+  }).join(' ')
+}
+
 export default function ManagePage() {
   const { user } = useAuth()
   const [tab, setTab] = useState<ManageTab>('users')
@@ -177,10 +189,10 @@ export default function ManagePage() {
                       <span><b>{u.quizAttempts}</b> bài kiểm tra</span>
                       <span><b>{u.flashcardReviews}</b> lượt thẻ</span>
                     </div>
-                    <div className="mng-user-activity" aria-label="Bản đồ hoạt động 14 ngày gần nhất">
-                      {u.activityMap.map((level, index) => (
-                        <i key={index} data-level={level} title={`${level} lượt hoạt động`} />
-                      ))}
+                    <div className="mng-user-activity" aria-hidden="true">
+                      <svg viewBox="0 0 150 44" preserveAspectRatio="none">
+                        <polyline points={linePoints(u.activityMap)} />
+                      </svg>
                     </div>
                     <div className="mng-user-actions">
                       <button className="mng-icon danger" disabled={isMe} title="Xóa người dùng" onClick={() => delUser(u.id)}>

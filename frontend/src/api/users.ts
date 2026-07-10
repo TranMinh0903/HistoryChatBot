@@ -5,38 +5,22 @@ const USER_KEY = 'lsd_user'
 const USERS_KEY = 'lsd_admin_users'
 
 function mockUsers(): UserAdmin[] {
-  const current = lsGet<User | null>(USER_KEY, null)
   const saved = lsGet<UserAdmin[] | null>(USERS_KEY, null)
-  const map = (seed: number) => Array.from({ length: 14 }, (_, i) => (seed + i * 2) % 5)
+  const map = (seed: number) => Array.from({ length: 14 }, (_, i) => Math.max(1, (seed + i * 2 + (i % 3) * 3) % 12))
   if (saved) {
-    return saved.map((user, index) => ({
-      ...user,
-      totalVisits: user.totalVisits ?? Math.max(1, Math.ceil((user.chatSessions + user.quizAttempts + user.flashcardReviews) / 3)),
-      webUses: user.webUses ?? (user.chatSessions + user.quizAttempts + user.flashcardReviews),
-      activityMap: user.activityMap ?? map(index + 1),
-    }))
+    return saved
+      .filter((user) => user.role !== 2)
+      .map((user, index) => ({
+        ...user,
+        totalVisits: user.totalVisits ?? Math.max(1, Math.ceil((user.chatSessions + user.quizAttempts + user.flashcardReviews) / 3)),
+        webUses: user.webUses ?? (user.chatSessions + user.quizAttempts + user.flashcardReviews),
+        activityMap: user.activityMap ?? map(index + 1),
+      }))
   }
 
   const now = new Date()
   const daysAgo = (days: number) => new Date(now.getTime() - days * 86400000).toISOString()
   const base: UserAdmin[] = [
-    {
-      id: current?.id ?? 'admin',
-      username: current?.username ?? 'admin',
-      displayName: current?.displayName ?? 'Quản trị viên',
-      email: current?.email,
-      role: current?.role ?? 2,
-      avatarUrl: current?.avatarUrl,
-      createdAt: daysAgo(28),
-      lastLoginAt: now.toISOString(),
-      chatSessions: 18,
-      quizAttempts: 12,
-      avgQuizScore: 86,
-      flashcardReviews: 74,
-      totalVisits: 36,
-      webUses: 104,
-      activityMap: map(4),
-    },
     {
       id: 'student-1',
       username: 'minhan',

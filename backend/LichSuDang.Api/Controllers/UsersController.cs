@@ -1,4 +1,5 @@
 using LichSuDang.Api.Data;
+using LichSuDang.Api.Domain;
 using LichSuDang.Api.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,7 @@ public class UsersController : ApiControllerBase
     public async Task<ActionResult<List<UserAdminDto>>> GetForManage()
     {
         var users = await _db.Users
+            .Where(u => u.Role == Role.User)
             .OrderByDescending(u => u.LastLoginAt ?? u.CreatedAt)
             .ToListAsync();
 
@@ -52,19 +54,19 @@ public class UsersController : ApiControllerBase
                 flashcardReviews,
                 totalVisits,
                 webUses,
-                BuildActivityMap(webUses));
+                BuildActivitySeries(webUses));
         }).ToList();
     }
 
-    private static List<int> BuildActivityMap(int webUses)
+    private static List<int> BuildActivitySeries(int webUses)
     {
-        var cells = new List<int>(14);
+        var values = new List<int>(14);
         for (var i = 0; i < 14; i++)
         {
-            var value = webUses == 0 ? 0 : Math.Min(4, (webUses + i * 3) % 7);
-            cells.Add(value);
+            var value = webUses == 0 ? 0 : Math.Max(1, (webUses / 8 + i * 2 + (i % 3) * 3) % 12);
+            values.Add(value);
         }
-        return cells;
+        return values;
     }
 
     [Authorize(Roles = "Admin")]

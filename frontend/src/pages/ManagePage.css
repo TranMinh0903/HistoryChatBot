@@ -163,26 +163,30 @@
 }
 
 .mng-user-activity {
-  display: grid;
-  grid-template-columns: repeat(7, 14px);
-  gap: 5px;
-  padding: 8px;
+  width: 154px;
+  height: 52px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--surface-2);
+  background:
+    linear-gradient(180deg, rgba(178, 34, 34, .05), transparent 58%),
+    var(--surface-2);
 }
 
-.mng-user-activity i {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  background: #f3e8df;
+.mng-user-activity svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-.mng-user-activity i[data-level="1"] { background: #f8d8b4; }
-.mng-user-activity i[data-level="2"] { background: #f0b56e; }
-.mng-user-activity i[data-level="3"] { background: #dc7b3a; }
-.mng-user-activity i[data-level="4"] { background: #b22222; }
+.mng-user-activity polyline {
+  fill: none;
+  stroke: var(--red);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
 
 .mng-user-actions {
   gap: 8px;
