@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { AlertTriangle, Bot, Loader2, MessageSquare, Plus, Send, Sparkles, Trash2, UserRound } from 'lucide-react'
+import { AlertTriangle, BookOpenText, Bot, Loader2, MessageSquare, Plus, Send, Sparkles, Trash2, UserRound } from 'lucide-react'
 import type { ChatSession, ChatMessage } from '../types'
 import * as chatApi from '../api/chat'
 import './ChatPage.css'
@@ -258,6 +258,9 @@ export default function ChatPage() {
                     {m.role === 'assistant'
                       ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                       : m.content}
+                    {m.role === 'assistant' && m.sources && m.sources.length > 0 && (
+                      <div className="msg-sources"><BookOpenText size={13} /> Nguồn: {m.sources.join(', ')}</div>
+                    )}
                   </div>
                 </div>
               ))}

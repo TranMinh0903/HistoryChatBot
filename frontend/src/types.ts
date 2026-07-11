@@ -44,6 +44,7 @@ export interface ChatMessage {
   content: string
   createdAt: string
   tokenCount?: number
+  sources?: string[]   // nguồn tài liệu RAG (vd ["Session 17"])
 }
 
 export interface SendMessageResponse {

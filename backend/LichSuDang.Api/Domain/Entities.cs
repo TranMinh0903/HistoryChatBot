@@ -1,6 +1,18 @@
+using Pgvector;
+
 namespace LichSuDang.Api.Domain;
 
 public enum Role { User = 1, Admin = 2 }
+
+// Một đoạn văn bản trích từ tài liệu VNR202 + vector embedding (cho RAG).
+public class DocumentChunk
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Source { get; set; } = "";   // vd "Session 5"
+    public string Content { get; set; } = "";
+    public Vector? Embedding { get; set; }      // vector(768) từ Gemini
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
 
 public class User
 {

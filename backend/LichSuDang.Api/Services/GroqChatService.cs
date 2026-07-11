@@ -23,6 +23,21 @@ public class GroqChatService
         "Nếu câu hỏi nằm NGOÀI chủ đề này, hãy lịch sự nhắc lại phạm vi và mời hỏi đúng chủ đề. " +
         "Không bịa số liệu; nếu không chắc, nói rõ. Giọng văn thân thiện như một gia sư.";
 
+    // Ghép trích đoạn tài liệu (RAG) thành 1 message hệ thống bổ sung.
+    private static IEnumerable<object> BuildMessages(IEnumerable<(string Role, string Content)> history, string? context)
+    {
+        yield return new { role = "system", content = SystemPrompt };
+        if (!string.IsNullOrWhiteSpace(context))
+            yield return new
+            {
+                role = "system",
+                content = "Dưới đây là TRÍCH ĐOẠN từ giáo trình môn Lịch sử Đảng (VNR202). " +
+                          "Hãy ưu tiên dựa vào nội dung này để trả lời; nếu tài liệu không đủ, dùng thêm kiến thức của bạn:\n\n" + context,
+            };
+        foreach (var (role, content) in history)
+            yield return new { role, content };
+    }
+
     public GroqChatService(HttpClient http, IConfiguration cfg, ILogger<GroqChatService> log)
     {
         _http = http;
@@ -33,7 +48,7 @@ public class GroqChatService
     }
 
     public async Task<(string Content, int Tokens)> AskAsync(
-        IEnumerable<(string Role, string Content)> history, CancellationToken ct = default)
+        IEnumerable<(string Role, string Content)> history, string? context = null, CancellationToken ct = default)
     {
         // Không có API key → trả lời fallback để hệ thống vẫn chạy được khi dev.
         if (string.IsNullOrWhiteSpace(_apiKey))
@@ -43,10 +58,7 @@ public class GroqChatService
                     "để bật trả lời AI. (Xem docs/GROQ.md)", 0);
         }
 
-        var messages = new List<object> { new { role = "system", content = SystemPrompt } };
-        foreach (var (role, content) in history)
-            messages.Add(new { role, content });
-
+        var messages = BuildMessages(history, context).ToList();
         var payload = new { model = _model, temperature = 0.4, max_tokens = 1024, messages };
 
         using var req = new HttpRequestMessage(HttpMethod.Post, "chat/completions");
@@ -105,6 +117,7 @@ public class GroqChatService
     // Trả lời dạng STREAM: yield từng đoạn text (delta) khi Groq sinh ra → frontend hiện chữ dần.
     public async IAsyncEnumerable<string> AskStreamAsync(
         IEnumerable<(string Role, string Content)> history,
+        string? context = null,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(_apiKey))
@@ -113,10 +126,7 @@ public class GroqChatService
             yield break;
         }
 
-        var messages = new List<object> { new { role = "system", content = SystemPrompt } };
-        foreach (var (role, content) in history)
-            messages.Add(new { role, content });
-
+        var messages = BuildMessages(history, context).ToList();
         var payload = new { model = _model, temperature = 0.4, max_tokens = 1024, stream = true, messages };
 
         using var req = new HttpRequestMessage(HttpMethod.Post, "chat/completions");

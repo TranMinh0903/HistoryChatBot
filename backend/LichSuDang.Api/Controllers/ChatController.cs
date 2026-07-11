@@ -14,7 +14,8 @@ public class ChatController : ApiControllerBase
 {
     private readonly AppDbContext _db;
     private readonly GroqChatService _groq;
-    public ChatController(AppDbContext db, GroqChatService groq) { _db = db; _groq = groq; }
+    private readonly RagService _rag;
+    public ChatController(AppDbContext db, GroqChatService groq, RagService rag) { _db = db; _groq = groq; _rag = rag; }
 
     [HttpGet("sessions")]
     public async Task<ActionResult<List<ChatSessionDto>>> GetSessions()
@@ -69,9 +70,10 @@ public class ChatController : ApiControllerBase
         var userMsg = new ChatMessage { SessionId = id, Role = "user", Content = req.Content };
         _db.ChatMessages.Add(userMsg);
 
-        // gọi Groq với lịch sử + tin nhắn mới
+        // RAG: tìm trích đoạn tài liệu VNR202 liên quan rồi gọi Groq
+        var rag = await _rag.RetrieveAsync(req.Content);
         var convo = history.Select(h => (h.Role, h.Content)).Append(("user", req.Content));
-        var (answer, tokens) = await _groq.AskAsync(convo);
+        var (answer, tokens) = await _groq.AskAsync(convo, rag?.Context);
 
         var botMsg = new ChatMessage { SessionId = id, Role = "assistant", Content = answer, TokenCount = tokens };
         _db.ChatMessages.Add(botMsg);
@@ -109,9 +111,10 @@ public class ChatController : ApiControllerBase
         await _db.SaveChangesAsync();
         await WriteEvent(new { type = "user", message = userMsg.ToDto() });
 
+        var rag = await _rag.RetrieveAsync(req.Content);
         var convo = history.Select(h => (h.Role, h.Content)).Append(("user", req.Content));
         var sb = new StringBuilder();
-        await foreach (var delta in _groq.AskStreamAsync(convo, HttpContext.RequestAborted))
+        await foreach (var delta in _groq.AskStreamAsync(convo, rag?.Context, HttpContext.RequestAborted))
         {
             sb.Append(delta);
             await WriteEvent(new { type = "delta", content = delta });
@@ -123,7 +126,7 @@ public class ChatController : ApiControllerBase
         session.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
-        await WriteEvent(new { type = "done", assistantMessage = botMsg.ToDto() });
+        await WriteEvent(new { type = "done", assistantMessage = botMsg.ToDto(), sources = rag?.Sources ?? new List<string>() });
     }
 
     private async Task WriteEvent(object payload)

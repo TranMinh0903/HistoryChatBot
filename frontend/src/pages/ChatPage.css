@@ -403,6 +403,12 @@
 
 .msg-assistant .msg-bubble :first-child { margin-top: 0; }
 .msg-assistant .msg-bubble :last-child { margin-bottom: 0; }
+.msg-sources {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e4dfd8;
+  font-size: .78rem; color: #8a7f79;
+}
+:root[data-theme="dark"] .msg-sources { border-top-color: #2a2e39; color: #9aa0ab; }
 .msg-assistant .msg-bubble p { margin: 0 0 10px; }
 .msg-assistant .msg-bubble ul,
 .msg-assistant .msg-bubble ol {

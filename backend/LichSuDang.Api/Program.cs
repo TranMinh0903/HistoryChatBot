@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Pgvector.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 var cfg = builder.Configuration;
@@ -20,11 +21,13 @@ var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 var connString = !string.IsNullOrWhiteSpace(databaseUrl)
     ? ConvertDatabaseUrl(databaseUrl)
     : (cfg.GetConnectionString("Default") ?? "Host=localhost;Database=lichsudang;Username=postgres;Password=postgres");
-builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connString));
+builder.Services.AddDbContext<AppDbContext>(o => o.UseNpgsql(connString, np => np.UseVector()));
 
 // ----- App services -----
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddHttpClient<GroqChatService>();
+builder.Services.AddHttpClient<EmbeddingService>();   // Gemini embedding cho RAG
+builder.Services.AddScoped<RagService>();
 
 // ----- Auth (JWT) -----
 var jwtKey = cfg["Jwt:Key"] ?? "dev-only-secret-key-change-me-please-32-characters";

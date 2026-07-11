@@ -15,9 +15,19 @@ public class AppDbContext : DbContext
     public DbSet<QuizAttemptAnswer> QuizAttemptAnswers => Set<QuizAttemptAnswer>();
     public DbSet<Flashcard> Flashcards => Set<Flashcard>();
     public DbSet<FlashcardReview> FlashcardReviews => Set<FlashcardReview>();
+    public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
+        b.HasPostgresExtension("vector");
+
+        b.Entity<DocumentChunk>(e =>
+        {
+            e.ToTable("document_chunks");
+            e.Property(x => x.Source).HasMaxLength(120);
+            e.Property(x => x.Embedding).HasColumnType("vector(768)");
+        });
+
         b.Entity<User>(e =>
         {
             e.ToTable("users");

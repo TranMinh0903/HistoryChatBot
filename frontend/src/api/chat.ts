@@ -119,7 +119,7 @@ export async function sendMessageStream(
       const evt = JSON.parse(line.slice(5).trim())
       if (evt.type === 'delta') onDelta(evt.content as string)
       else if (evt.type === 'user') userMessage = evt.message as ChatMessage
-      else if (evt.type === 'done') assistantMessage = evt.assistantMessage as ChatMessage
+      else if (evt.type === 'done') assistantMessage = { ...(evt.assistantMessage as ChatMessage), sources: evt.sources as string[] | undefined }
       else if (evt.type === 'error') throw new Error(evt.error as string)
     }
   }
