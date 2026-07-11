@@ -71,6 +71,7 @@ public class QuizController : ApiControllerBase
     public async Task<ActionResult<List<QuizAttemptSummaryDto>>> GetAllAttempts([FromQuery] int limit = 20)
     {
         return await _db.QuizAttempts
+            .Where(a => a.User!.Role == Role.User)
             .OrderByDescending(a => a.FinishedAt)
             .Take(Math.Clamp(limit, 1, 200))
             .Select(a => new QuizAttemptSummaryDto(a.Id, a.Score, a.CorrectCount, a.TotalQuestions, a.FinishedAt))

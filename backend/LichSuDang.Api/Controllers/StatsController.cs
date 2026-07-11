@@ -1,4 +1,5 @@
 using LichSuDang.Api.Data;
+using LichSuDang.Api.Domain;
 using LichSuDang.Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,14 +20,16 @@ public class StatsController : ApiControllerBase
 
         if (IsAdmin)
         {
+            // Chỉ tính end-user (Role.User), KHÔNG tính tài khoản admin → khớp trang Quản lý.
+            var userAttempts = _db.QuizAttempts.Where(a => a.User!.Role == Role.User);
             return new StatsOverviewDto(
-                TotalUsers: await _db.Users.CountAsync(),
-                ActiveUsers7d: await _db.Users.CountAsync(u => u.LastLoginAt != null && u.LastLoginAt > weekAgo),
-                TotalSessions: await _db.ChatSessions.CountAsync(),
-                TotalUserMessages: await _db.ChatMessages.CountAsync(m => m.Role == "user"),
-                TotalQuizAttempts: await _db.QuizAttempts.CountAsync(),
-                AvgQuizScore: await _db.QuizAttempts.AnyAsync() ? Math.Round(await _db.QuizAttempts.AverageAsync(a => (double)a.Score), 1) : 0,
-                TotalFlashcardReviews: await _db.FlashcardReviews.CountAsync());
+                TotalUsers: await _db.Users.CountAsync(u => u.Role == Role.User),
+                ActiveUsers7d: await _db.Users.CountAsync(u => u.Role == Role.User && u.LastLoginAt != null && u.LastLoginAt > weekAgo),
+                TotalSessions: await _db.ChatSessions.CountAsync(s => s.User!.Role == Role.User),
+                TotalUserMessages: await _db.ChatMessages.CountAsync(m => m.Role == "user" && m.Session!.User!.Role == Role.User),
+                TotalQuizAttempts: await userAttempts.CountAsync(),
+                AvgQuizScore: await userAttempts.AnyAsync() ? Math.Round(await userAttempts.AverageAsync(a => (double)a.Score), 1) : 0,
+                TotalFlashcardReviews: await _db.FlashcardReviews.CountAsync(r => _db.Users.Any(u => u.Id == r.UserId && u.Role == Role.User)));
         }
 
         var uid = UserId;
@@ -49,9 +52,9 @@ public class StatsController : ApiControllerBase
 
         if (IsAdmin)
         {
-            var msgRaw = await _db.ChatMessages.Where(m => m.CreatedAt >= from)
+            var msgRaw = await _db.ChatMessages.Where(m => m.CreatedAt >= from && m.Session!.User!.Role == Role.User)
                 .GroupBy(m => m.CreatedAt.Date).Select(g => new { g.Key, Count = g.Count() }).ToListAsync();
-            var userRaw = await _db.Users.Where(u => u.CreatedAt >= from)
+            var userRaw = await _db.Users.Where(u => u.Role == Role.User && u.CreatedAt >= from)
                 .GroupBy(u => u.CreatedAt.Date).Select(g => new { g.Key, Count = g.Count() }).ToListAsync();
             return new StatsActivityDto(
                 FillDays(from, days, msgRaw.ToDictionary(x => x.Key, x => x.Count)),
@@ -74,8 +77,10 @@ public class StatsController : ApiControllerBase
         days = Math.Clamp(days, 1, 365);
         var from = DateTime.UtcNow.Date.AddDays(-(days - 1));
 
-        var query = _db.QuizAttempts.AsQueryable();
-        if (!IsAdmin) { var uid = UserId; query = query.Where(a => a.UserId == uid); }
+        // Admin: chỉ lượt của end-user (loại admin). User thường: chỉ của mình.
+        var query = IsAdmin
+            ? _db.QuizAttempts.Where(a => a.User!.Role == Role.User)
+            : _db.QuizAttempts.Where(a => a.UserId == UserId);
         var attempts = await query.ToListAsync();
 
         string Bucket(int s) => s <= 20 ? "0–20" : s <= 40 ? "21–40" : s <= 60 ? "41–60" : s <= 80 ? "61–80" : "81–100";
