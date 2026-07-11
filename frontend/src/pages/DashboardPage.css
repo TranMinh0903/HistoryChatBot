@@ -70,6 +70,26 @@
   grid-column: span 6;
 }
 
+.analytics-leaderboard { grid-column: 1 / -1; }
+.lb-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.lb-empty { padding: 10px 4px; }
+.lb-row { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 12px; background: #faf7f2; }
+.lb-row.lb-top { background: #fff6e6; }
+.lb-rank {
+  width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 800; font-size: .82rem; background: #e7e2da; color: #6b6560;
+}
+.lb-rank-1 { background: #FFD24A; color: #6b5300; }
+.lb-rank-2 { background: #C9CDD4; color: #414449; }
+.lb-rank-3 { background: #E0A46A; color: #5a3311; }
+.lb-name { flex: 1; font-weight: 700; color: #2b2b30; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-attempts { font-size: .82rem; }
+.lb-score { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: #a3231f; }
+
+:root[data-theme="dark"] .lb-row { background: #1c1f26; }
+:root[data-theme="dark"] .lb-row.lb-top { background: #2a2416; }
+:root[data-theme="dark"] .lb-name { color: #f0f0f2; }
+
 .analytics-title {
   display: flex;
   align-items: center;

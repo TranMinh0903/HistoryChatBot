@@ -13,7 +13,7 @@ import {
   YAxis,
 } from 'recharts'
 import { Flame, Layers, MessageSquare, PenLine, Star, Users, UserCheck } from 'lucide-react'
-import type { Flashcard, QuizAttemptSummary, StatsActivity, StatsOverview, StatsQuiz } from '../types'
+import type { Flashcard, LeaderboardEntry, QuizAttemptSummary, StatsActivity, StatsOverview, StatsQuiz } from '../types'
 import * as statsApi from '../api/stats'
 import * as fcApi from '../api/flashcards'
 import * as quizApi from '../api/quiz'
@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const [quiz, setQuiz] = useState<StatsQuiz | null>(null)
   const [flashcards, setFlashcards] = useState<Flashcard[]>([])
   const [attempts, setAttempts] = useState<QuizAttemptSummary[]>([])
+  const [board, setBoard] = useState<LeaderboardEntry[]>([])
 
   useEffect(() => {
     void (async () => {
@@ -50,6 +51,7 @@ export default function DashboardPage() {
       setQuiz(q)
       setFlashcards(f)
       setAttempts(qa)
+      if (isAdmin) quizApi.getLeaderboard(10).then(setBoard).catch(() => {})
     })()
   }, [isAdmin])
 
@@ -220,6 +222,26 @@ export default function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
           </article>
+
+          {isAdmin && (
+            <article className="analytics-card analytics-leaderboard card">
+              <div className="analytics-title">
+                <h2>Bảng xếp hạng</h2>
+                <span>Top điểm cao</span>
+              </div>
+              <div className="lb-list">
+                {board.length === 0 && <p className="muted lb-empty">Chưa có ai làm quiz.</p>}
+                {board.map((e, i) => (
+                  <div key={e.userId} className={'lb-row' + (i < 3 ? ' lb-top' : '')}>
+                    <span className={'lb-rank lb-rank-' + (i + 1)}>{i + 1}</span>
+                    <span className="lb-name">{e.displayName}</span>
+                    <span className="lb-attempts muted">{e.attempts} lượt</span>
+                    <span className="lb-score"><Star size={13} fill="#FFCD00" stroke="#FFCD00" /> {e.bestScore}</span>
+                  </div>
+                ))}
+              </div>
+            </article>
+          )}
         </div>
       </div>
     </div>

@@ -83,7 +83,9 @@ public class QuizController : ApiControllerBase
     public async Task<ActionResult<List<LeaderboardEntryDto>>> Leaderboard([FromQuery] int limit = 10)
     {
         // Group theo UserId (scalar) để EF dịch được sang SQL, rồi lấy tên hiển thị riêng.
+        // Loại tài khoản admin khỏi bảng xếp hạng (chỉ xếp hạng end-user).
         var top = await _db.QuizAttempts
+            .Where(a => a.User!.Role == Role.User)
             .GroupBy(a => a.UserId)
             .Select(g => new { UserId = g.Key, BestScore = g.Max(x => x.Score), Attempts = g.Count() })
             .OrderByDescending(x => x.BestScore)
