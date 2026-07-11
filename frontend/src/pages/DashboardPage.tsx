@@ -17,6 +17,7 @@ import type { Flashcard, QuizAttemptSummary, StatsActivity, StatsOverview, Stats
 import * as statsApi from '../api/stats'
 import * as fcApi from '../api/flashcards'
 import * as quizApi from '../api/quiz'
+import { useAuth } from '../context/AuthContext'
 import './DashboardPage.css'
 
 const RED = '#B22222'
@@ -26,6 +27,8 @@ const MUTED = '#D8D1C7'
 const PERIODS = ['1954', '1960', '1968', '1975']
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 2
   const [overview, setOverview] = useState<StatsOverview | null>(null)
   const [activity, setActivity] = useState<StatsActivity | null>(null)
   const [quiz, setQuiz] = useState<StatsQuiz | null>(null)
@@ -39,7 +42,8 @@ export default function DashboardPage() {
         statsApi.getActivity(30),
         statsApi.getQuizStats(),
         fcApi.getFlashcards().catch(() => []),
-        quizApi.getAttempts().catch(() => []),
+        // Admin xem toàn hệ thống (Get All); user thường chỉ xem của mình
+        (isAdmin ? quizApi.getAllAttempts(20) : quizApi.getAttempts()).catch(() => []),
       ])
       setOverview(o)
       setActivity(a)
@@ -47,7 +51,7 @@ export default function DashboardPage() {
       setFlashcards(f)
       setAttempts(qa)
     })()
-  }, [])
+  }, [isAdmin])
 
   const totalAttempts = overview?.totalQuizAttempts ?? 0
   const avgScore = Math.round(quiz?.avgScore ?? overview?.avgQuizScore ?? 0)

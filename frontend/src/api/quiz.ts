@@ -86,6 +86,16 @@ export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
   return data
 }
 
+// Lượt làm quiz gần đây của toàn hệ thống (Admin) — cho dashboard Get All.
+export async function getAllAttempts(limit = 20): Promise<QuizAttemptSummary[]> {
+  if (USE_MOCK) {
+    await delay(120)
+    return lsGet<QuizAttemptSummary[]>(ATTEMPTS_KEY, [])
+  }
+  const { data } = await http.get<QuizAttemptSummary[]>(`/quiz/attempts/all?limit=${limit}`)
+  return data
+}
+
 // ----- Quản lý câu hỏi (Admin) -----
 export async function getQuestionsAdmin(): Promise<QuizQuestionAdmin[]> {
   if (USE_MOCK) {

@@ -65,6 +65,18 @@ public class QuizController : ApiControllerBase
             .ToListAsync();
     }
 
+    // Lượt làm quiz gần đây của TOÀN hệ thống — cho dashboard Admin (Get All).
+    [Authorize(Roles = "Admin")]
+    [HttpGet("attempts/all")]
+    public async Task<ActionResult<List<QuizAttemptSummaryDto>>> GetAllAttempts([FromQuery] int limit = 20)
+    {
+        return await _db.QuizAttempts
+            .OrderByDescending(a => a.FinishedAt)
+            .Take(Math.Clamp(limit, 1, 200))
+            .Select(a => new QuizAttemptSummaryDto(a.Id, a.Score, a.CorrectCount, a.TotalQuestions, a.FinishedAt))
+            .ToListAsync();
+    }
+
     [Authorize(Roles = "Admin")]
     [HttpGet("leaderboard")]
     public async Task<ActionResult<List<LeaderboardEntryDto>>> Leaderboard([FromQuery] int limit = 10)
