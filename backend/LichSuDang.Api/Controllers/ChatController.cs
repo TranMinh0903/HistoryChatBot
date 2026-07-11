@@ -48,9 +48,8 @@ public class ChatController : ApiControllerBase
         var msgs = await _db.ChatMessages
             .Where(m => m.SessionId == id)
             .OrderBy(m => m.CreatedAt)
-            .Select(m => m.ToDto())
             .ToListAsync();
-        return msgs;
+        return msgs.Select(m => m.ToDto()).ToList();   // map trong bộ nhớ (ToDto có Split, EF không dịch được)
     }
 
     [HttpPost("sessions/{id}/messages")]
@@ -75,7 +74,11 @@ public class ChatController : ApiControllerBase
         var convo = history.Select(h => (h.Role, h.Content)).Append(("user", req.Content));
         var (answer, tokens) = await _groq.AskAsync(convo, rag?.Context);
 
-        var botMsg = new ChatMessage { SessionId = id, Role = "assistant", Content = answer, TokenCount = tokens };
+        var botMsg = new ChatMessage
+        {
+            SessionId = id, Role = "assistant", Content = answer, TokenCount = tokens,
+            Sources = rag?.Sources is { Count: > 0 } s ? string.Join(",", s) : null,
+        };
         _db.ChatMessages.Add(botMsg);
 
         if (isFirst) session.Title = req.Content.Length > 60 ? req.Content[..60] : req.Content;
@@ -120,7 +123,11 @@ public class ChatController : ApiControllerBase
             await WriteEvent(new { type = "delta", content = delta });
         }
 
-        var botMsg = new ChatMessage { SessionId = id, Role = "assistant", Content = sb.ToString() };
+        var botMsg = new ChatMessage
+        {
+            SessionId = id, Role = "assistant", Content = sb.ToString(),
+            Sources = rag?.Sources is { Count: > 0 } s ? string.Join(",", s) : null,
+        };
         _db.ChatMessages.Add(botMsg);
         if (isFirst) session.Title = req.Content.Length > 60 ? req.Content[..60] : req.Content;
         session.UpdatedAt = DateTime.UtcNow;

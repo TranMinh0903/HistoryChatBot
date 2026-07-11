@@ -51,6 +51,7 @@ public class ChatMessage
     public string Role { get; set; } = "user"; // user | assistant | system
     public string Content { get; set; } = "";
     public int? TokenCount { get; set; }
+    public string? Sources { get; set; }        // nguồn RAG, phân tách bằng dấu phẩy (vd "Session 17,Session 19")
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 

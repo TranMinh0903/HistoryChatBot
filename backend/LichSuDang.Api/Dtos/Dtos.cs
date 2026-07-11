@@ -15,7 +15,7 @@ public record UserAdminDto(Guid Id, string Username, string DisplayName, string?
 
 // ----- Chat -----
 public record ChatSessionDto(Guid Id, string Title, DateTime CreatedAt, DateTime UpdatedAt);
-public record ChatMessageDto(Guid Id, string Role, string Content, DateTime CreatedAt, int? TokenCount);
+public record ChatMessageDto(Guid Id, string Role, string Content, DateTime CreatedAt, int? TokenCount, List<string>? Sources);
 public record CreateSessionRequest(string? Title);
 public record RenameSessionRequest(string Title);
 public record SendMessageRequest(string Content);
@@ -54,7 +54,9 @@ public static class Mapping
 {
     public static UserDto ToDto(this User u) => new(u.Id, u.Username, u.DisplayName, u.Email, (int)u.Role, u.AvatarUrl);
     public static ChatSessionDto ToDto(this ChatSession s) => new(s.Id, s.Title, s.CreatedAt, s.UpdatedAt);
-    public static ChatMessageDto ToDto(this ChatMessage m) => new(m.Id, m.Role, m.Content, m.CreatedAt, m.TokenCount);
+    public static ChatMessageDto ToDto(this ChatMessage m) => new(
+        m.Id, m.Role, m.Content, m.CreatedAt, m.TokenCount,
+        string.IsNullOrEmpty(m.Sources) ? null : m.Sources.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList());
     public static FlashcardDto ToDto(this Flashcard f) => new(f.Id, f.Front, f.Back, f.Topic, f.Period);
     public static QuizQuestionDto ToDto(this QuizQuestion q) => new(
         q.Id, q.Question,
