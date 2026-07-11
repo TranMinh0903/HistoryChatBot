@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace LichSuDang.Api.Services;
@@ -66,5 +67,58 @@ public class GroqChatService
         var tokens = root.TryGetProperty("usage", out var usage) &&
                      usage.TryGetProperty("completion_tokens", out var ctk) ? ctk.GetInt32() : 0;
         return (text, tokens);
+    }
+
+    // Trả lời dạng STREAM: yield từng đoạn text (delta) khi Groq sinh ra → frontend hiện chữ dần.
+    public async IAsyncEnumerable<string> AskStreamAsync(
+        IEnumerable<(string Role, string Content)> history,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+        {
+            yield return "⚠️ Hệ thống chưa cấu hình GROQ_API_KEY. Vui lòng đặt biến môi trường GROQ_API_KEY để bật trả lời AI.";
+            yield break;
+        }
+
+        var messages = new List<object> { new { role = "system", content = SystemPrompt } };
+        foreach (var (role, content) in history)
+            messages.Add(new { role, content });
+
+        var payload = new { model = _model, temperature = 0.4, max_tokens = 1024, stream = true, messages };
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, "chat/completions");
+        req.Headers.Add("Authorization", $"Bearer {_apiKey}");
+        req.Content = JsonContent.Create(payload);
+
+        using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            _log.LogError("Groq stream error {Status}", resp.StatusCode);
+            yield return $"⚠️ Lỗi gọi Groq ({(int)resp.StatusCode}). Vui lòng thử lại.";
+            yield break;
+        }
+
+        using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var reader = new StreamReader(stream);
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync(ct);
+            if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("data:")) continue;
+            var data = line["data:".Length..].Trim();
+            if (data == "[DONE]") break;
+
+            string? delta = null;
+            try
+            {
+                using var doc = JsonDocument.Parse(data);
+                var choices = doc.RootElement.GetProperty("choices");
+                if (choices.GetArrayLength() > 0 &&
+                    choices[0].GetProperty("delta").TryGetProperty("content", out var c))
+                    delta = c.GetString();
+            }
+            catch { /* bỏ qua dòng không parse được */ }
+
+            if (!string.IsNullOrEmpty(delta)) yield return delta;
+        }
     }
 }

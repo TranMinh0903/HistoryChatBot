@@ -1,5 +1,5 @@
 import type { ChatSession, ChatMessage, SendMessageResponse } from '../types'
-import { USE_MOCK, http, delay, uid, lsGet, lsSet } from './client'
+import { USE_MOCK, http, delay, uid, lsGet, lsSet, getToken, API_BASE } from './client'
 import { mockChatReply } from '../mock/data'
 
 const SESSIONS_KEY = 'lsd_sessions'
@@ -68,6 +68,64 @@ export async function sendMessage(sessionId: string, content: string): Promise<S
   }
   const { data } = await http.post<SendMessageResponse>(`/chat/sessions/${sessionId}/messages`, { content })
   return data
+}
+
+// Gửi tin nhắn dạng STREAM (chữ hiện dần). Mock mode → giả lập chunk từ mockChatReply.
+export async function sendMessageStream(
+  sessionId: string,
+  content: string,
+  onDelta: (text: string) => void,
+): Promise<SendMessageResponse> {
+  if (USE_MOCK) {
+    await delay(400)
+    const now = new Date().toISOString()
+    const userMessage: ChatMessage = { id: uid(), role: 'user', content, createdAt: now }
+    const full = mockChatReply(content)
+    // giả lập stream theo từng từ
+    const words = full.split(' ')
+    for (const w of words) { onDelta(w + ' '); await delay(20) }
+    const assistantMessage: ChatMessage = { id: uid(), role: 'assistant', content: full, createdAt: new Date().toISOString(), tokenCount: 0 }
+    const msgs = lsGet<ChatMessage[]>(msgKey(sessionId), [])
+    lsSet(msgKey(sessionId), [...msgs, userMessage, assistantMessage])
+    const all = lsGet<ChatSession[]>(SESSIONS_KEY, [])
+    lsSet(SESSIONS_KEY, all.map((s) => s.id === sessionId
+      ? { ...s, title: msgs.length === 0 ? content.slice(0, 60) : s.title, updatedAt: new Date().toISOString() }
+      : s))
+    return { userMessage, assistantMessage }
+  }
+
+  const resp = await fetch(`${API_BASE}/chat/sessions/${sessionId}/messages/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+    body: JSON.stringify({ content }),
+  })
+  if (!resp.ok || !resp.body) throw new Error('Không kết nối được stream')
+
+  const reader = resp.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let userMessage: ChatMessage | null = null
+  let assistantMessage: ChatMessage | null = null
+
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const parts = buffer.split('\n\n')
+    buffer = parts.pop() ?? ''
+    for (const part of parts) {
+      const line = part.split('\n').find((l) => l.startsWith('data:'))
+      if (!line) continue
+      const evt = JSON.parse(line.slice(5).trim())
+      if (evt.type === 'delta') onDelta(evt.content as string)
+      else if (evt.type === 'user') userMessage = evt.message as ChatMessage
+      else if (evt.type === 'done') assistantMessage = evt.assistantMessage as ChatMessage
+      else if (evt.type === 'error') throw new Error(evt.error as string)
+    }
+  }
+
+  if (!userMessage || !assistantMessage) throw new Error('Stream không hoàn tất')
+  return { userMessage, assistantMessage }
 }
 
 // ---------- rename / delete ----------

@@ -19,6 +19,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [streaming, setStreaming] = useState(false)
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
@@ -101,19 +102,36 @@ export default function ChatPage() {
     }
 
     const optimistic: ChatMessage = { id: 'tmp-' + Date.now(), role: 'user', content, createdAt: new Date().toISOString() }
+    const streamId = 'stream-' + Date.now()
     setMessages((prev) => [...prev, optimistic])
+    setStreaming(false)
 
     try {
-      const res = await chatApi.sendMessage(sid, content)
-      setMessages((prev) => [...prev.filter((m) => m.id !== optimistic.id), res.userMessage, res.assistantMessage])
+      let started = false
+      const res = await chatApi.sendMessageStream(sid, content, (delta) => {
+        setMessages((prev) => {
+          if (!started) {
+            started = true
+            setStreaming(true)
+            return [...prev, { id: streamId, role: 'assistant', content: delta, createdAt: new Date().toISOString() }]
+          }
+          return prev.map((m) => (m.id === streamId ? { ...m, content: m.content + delta } : m))
+        })
+      })
+      // thay tin nhắn tạm bằng bản thật từ server
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== optimistic.id && m.id !== streamId),
+        res.userMessage, res.assistantMessage,
+      ])
       await loadSessions()
     } catch {
       setMessages((prev) => [
-        ...prev,
+        ...prev.filter((m) => m.id !== streamId),
         { id: 'err-' + Date.now(), role: 'assistant', content: 'Xin lỗi, có lỗi khi gửi tin nhắn. Vui lòng thử lại.', createdAt: new Date().toISOString() },
       ])
     } finally {
       setSending(false)
+      setStreaming(false)
     }
   }
 
@@ -243,7 +261,7 @@ export default function ChatPage() {
                   </div>
                 </div>
               ))}
-              {sending && (
+              {sending && !streaming && (
                 <div className="msg msg-assistant fade-in">
                   <div className="msg-avatar"><Bot size={17} /></div>
                   <div className="msg-bubble"><span className="typing"><i /><i /><i /></span></div>
