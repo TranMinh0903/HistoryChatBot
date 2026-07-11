@@ -31,6 +31,7 @@ public record QuizAttemptSummaryDto(Guid Id, int Score, int CorrectCount, int To
 public record LeaderboardEntryDto(Guid UserId, string DisplayName, int BestScore, int Attempts);
 public record CreateQuestionRequest(string Question, string OptionA, string OptionB, string OptionC, string OptionD,
     string CorrectOption, string? Explanation, int Difficulty, string? Topic, string? Period);
+public record GenerateQuizRequest(string? Topic, int Count, int Difficulty);   // AI tự sinh câu hỏi
 // Dùng cho màn hình quản lý (Admin) — kèm đáp án đúng + giải thích
 public record QuizQuestionAdminDto(Guid Id, string Question, string OptionA, string OptionB, string OptionC, string OptionD,
     string CorrectOption, string? Explanation, int Difficulty, string? Topic, string? Period);

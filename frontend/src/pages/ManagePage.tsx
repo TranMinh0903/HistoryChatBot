@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { Plus, Pencil, Trash2, X, Loader2, Gamepad2, Layers, Users, Search } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Loader2, Gamepad2, Layers, Users, Search, Sparkles } from 'lucide-react'
 import type { QuizQuestionAdmin, QuizQuestionInput, Flashcard, FlashcardInput, Option, UserAdmin } from '../types'
 import * as quizApi from '../api/quiz'
 import * as fcApi from '../api/flashcards'
@@ -39,6 +39,8 @@ export default function ManagePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [quizModal, setQuizModal] = useState<{ id: string | null; form: QuizQuestionInput } | null>(null)
+  const [aiModal, setAiModal] = useState<{ topic: string; count: number; difficulty: number } | null>(null)
+  const [generating, setGenerating] = useState(false)
   const [fcModal, setFcModal] = useState<{ id: string | null; form: FlashcardInput } | null>(null)
 
   useEffect(() => {
@@ -92,6 +94,22 @@ export default function ManagePage() {
   async function delQuiz(id: string) {
     if (!confirm('Xóa câu hỏi này?')) return
     await quizApi.deleteQuestion(id); await load()
+  }
+
+  async function generateAi() {
+    if (!aiModal || generating) return
+    setGenerating(true)
+    try {
+      const created = await quizApi.generateQuestions(aiModal.topic.trim(), aiModal.count, aiModal.difficulty)
+      setAiModal(null)
+      await load()
+      alert(`Đã tạo ${created.length} câu hỏi bằng AI ✅`)
+    } catch (e) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
+      alert(msg ?? 'Tạo câu hỏi bằng AI thất bại, thử lại')
+    } finally {
+      setGenerating(false)
+    }
   }
 
   async function saveFc() {
@@ -207,9 +225,14 @@ export default function ManagePage() {
           </>
         ) : tab === 'quiz' ? (
           <>
-            <button className="btn btn-primary mng-add" onClick={() => setQuizModal({ id: null, form: { ...emptyQuiz } })}>
-              <Plus size={17} /> Thêm câu hỏi
-            </button>
+            <div className="mng-add-row">
+              <button className="btn btn-primary" onClick={() => setQuizModal({ id: null, form: { ...emptyQuiz } })}>
+                <Plus size={17} /> Thêm câu hỏi
+              </button>
+              <button className="btn btn-gold" onClick={() => setAiModal({ topic: '', count: 5, difficulty: 1 })}>
+                <Sparkles size={17} /> Tạo bằng AI
+              </button>
+            </div>
             <div className="mng-list">
               {questions.map((q) => (
                 <div key={q.id} className="mng-item card">
@@ -359,6 +382,47 @@ export default function ManagePage() {
               <button className="btn btn-ghost" onClick={() => setFcModal(null)}>Hủy</button>
               <button className="btn btn-primary" onClick={saveFc} disabled={saving}>
                 {saving && <Loader2 size={16} className="spin" />} Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal tạo câu hỏi bằng AI */}
+      {aiModal && (
+        <div className="mng-overlay" onClick={() => { if (!generating) setAiModal(null) }}>
+          <div className="mng-modal card" onClick={(e) => e.stopPropagation()}>
+            <div className="mng-modal-head">
+              <h3><Sparkles size={18} /> Tạo câu hỏi bằng AI</h3>
+              <button className="mng-icon" onClick={() => setAiModal(null)} disabled={generating}><X size={18} /></button>
+            </div>
+            <div className="mng-form">
+              <div>
+                <label className="label">Chủ đề</label>
+                <input className="input" value={aiModal.topic} autoFocus
+                  onChange={(e) => setAiModal({ ...aiModal, topic: e.target.value })}
+                  placeholder="vd: Chiến dịch Hồ Chí Minh 1975 (để trống = chủ đề chung)" />
+              </div>
+              <div className="mng-form-row">
+                <div>
+                  <label className="label">Số câu</label>
+                  <select className="input" value={aiModal.count} onChange={(e) => setAiModal({ ...aiModal, count: Number(e.target.value) })}>
+                    {[3, 5, 10].map((n) => <option key={n} value={n}>{n} câu</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Độ khó</label>
+                  <select className="input" value={aiModal.difficulty} onChange={(e) => setAiModal({ ...aiModal, difficulty: Number(e.target.value) })}>
+                    {DIFF.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
+              <p className="muted mng-ai-hint">AI (Groq) sẽ tạo câu hỏi + đáp án + giải thích rồi lưu vào ngân hàng. Bạn có thể sửa/xóa sau.</p>
+            </div>
+            <div className="mng-modal-foot">
+              <button className="btn btn-ghost" onClick={() => setAiModal(null)} disabled={generating}>Hủy</button>
+              <button className="btn btn-gold" onClick={generateAi} disabled={generating}>
+                {generating ? <><Loader2 size={16} className="spin" /> Đang tạo…</> : <><Sparkles size={16} /> Tạo</>}
               </button>
             </div>
           </div>

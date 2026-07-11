@@ -69,6 +69,39 @@ public class GroqChatService
         return (text, tokens);
     }
 
+    // Gọi Groq ở chế độ JSON (dùng để AI sinh câu hỏi quiz). Trả về chuỗi JSON.
+    public async Task<string> CompleteJsonAsync(string systemPrompt, string userPrompt, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey)) return "";
+
+        var messages = new List<object>
+        {
+            new { role = "system", content = systemPrompt },
+            new { role = "user", content = userPrompt },
+        };
+        var payload = new
+        {
+            model = _model, temperature = 0.7, max_tokens = 2048,
+            response_format = new { type = "json_object" },
+            messages,
+        };
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, "chat/completions");
+        req.Headers.Add("Authorization", $"Bearer {_apiKey}");
+        req.Content = JsonContent.Create(payload);
+
+        using var resp = await _http.SendAsync(req, ct);
+        var body = await resp.Content.ReadAsStringAsync(ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            _log.LogError("Groq generate error {Status}: {Body}", resp.StatusCode, body);
+            return "";
+        }
+
+        using var doc = JsonDocument.Parse(body);
+        return doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "";
+    }
+
     // Trả lời dạng STREAM: yield từng đoạn text (delta) khi Groq sinh ra → frontend hiện chữ dần.
     public async IAsyncEnumerable<string> AskStreamAsync(
         IEnumerable<(string Role, string Content)> history,

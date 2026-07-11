@@ -9,6 +9,9 @@
 .mng-tab.active { color: var(--red-dark); border-bottom-color: var(--red); }
 
 .mng-add { margin-bottom: 16px; }
+.mng-add-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.mng-ai-hint { font-size: .82rem; line-height: 1.5; }
+.mng-modal-head h3 { display: inline-flex; align-items: center; gap: 8px; }
 
 /* Users */
 .mng-user-stats {

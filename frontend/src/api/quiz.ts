@@ -125,3 +125,10 @@ export async function deleteQuestion(id: string): Promise<void> {
   if (USE_MOCK) { await delay(100); return }
   await http.delete(`/quiz/questions/${id}`)
 }
+
+// AI tự sinh câu hỏi theo chủ đề → trả về các câu vừa tạo.
+export async function generateQuestions(topic: string, count: number, difficulty: number): Promise<QuizQuestionAdmin[]> {
+  if (USE_MOCK) { await delay(600); return [] }
+  const { data } = await http.post<QuizQuestionAdmin[]>('/quiz/questions/generate', { topic, count, difficulty })
+  return data
+}

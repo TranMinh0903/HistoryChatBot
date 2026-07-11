@@ -1,6 +1,8 @@
+using System.Text.Json;
 using LichSuDang.Api.Data;
 using LichSuDang.Api.Domain;
 using LichSuDang.Api.Dtos;
+using LichSuDang.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +13,8 @@ namespace LichSuDang.Api.Controllers;
 public class QuizController : ApiControllerBase
 {
     private readonly AppDbContext _db;
-    public QuizController(AppDbContext db) => _db = db;
+    private readonly GroqChatService _groq;
+    public QuizController(AppDbContext db, GroqChatService groq) { _db = db; _groq = groq; }
 
     [HttpGet("questions")]
     public async Task<ActionResult<List<QuizQuestionDto>>> GetQuestions([FromQuery] int count = 10)
@@ -122,6 +125,60 @@ public class QuizController : ApiControllerBase
         _db.QuizQuestions.Add(q);
         await _db.SaveChangesAsync();
         return q.ToAdminDto();
+    }
+
+    // AI tự sinh câu hỏi quiz theo chủ đề → lưu vào ngân hàng câu hỏi.
+    [Authorize(Roles = "Admin")]
+    [HttpPost("questions/generate")]
+    public async Task<ActionResult<List<QuizQuestionAdminDto>>> Generate(GenerateQuizRequest req)
+    {
+        var count = Math.Clamp(req.Count, 1, 10);
+        var diff = Math.Clamp(req.Difficulty, 1, 3);
+        var diffLabel = diff == 1 ? "dễ" : diff == 2 ? "trung bình" : "khó";
+        var topic = string.IsNullOrWhiteSpace(req.Topic) ? "Lịch sử Đảng CSVN giai đoạn 1954–1975" : req.Topic.Trim();
+
+        const string system = "Bạn là công cụ tạo câu hỏi trắc nghiệm môn Lịch sử Đảng Cộng sản Việt Nam giai đoạn 1954–1975. " +
+            "Chỉ trả về JSON hợp lệ, không kèm chữ nào khác. Nội dung chính xác về lịch sử, bằng tiếng Việt.";
+        var user = $"Tạo {count} câu hỏi trắc nghiệm (độ khó {diffLabel}) về chủ đề \"{topic}\". " +
+            "Mỗi câu có đúng 4 phương án A, B, C, D và 1 đáp án đúng, kèm giải thích ngắn gọn. " +
+            "Trả về JSON dạng: {\"questions\":[{\"question\":\"...\",\"optionA\":\"...\",\"optionB\":\"...\",\"optionC\":\"...\",\"optionD\":\"...\",\"correctOption\":\"A\",\"explanation\":\"...\"}]}";
+
+        var json = await _groq.CompleteJsonAsync(system, user);
+        if (string.IsNullOrWhiteSpace(json))
+            return BadRequest(new { error = "Chưa cấu hình GROQ_API_KEY hoặc AI không phản hồi" });
+
+        var created = new List<QuizQuestion>();
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("questions", out var arr) || arr.ValueKind != JsonValueKind.Array)
+                return BadRequest(new { error = "AI trả về dữ liệu không đúng định dạng, thử lại" });
+
+            foreach (var q in arr.EnumerateArray())
+            {
+                string S(string p) => q.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString()! : "";
+                var question = S("question");
+                if (string.IsNullOrWhiteSpace(question)) continue;
+                var correct = S("correctOption").Trim().ToUpperInvariant();
+                var letter = correct.Length > 0 && "ABCD".Contains(correct[0]) ? correct[0].ToString() : "A";
+                created.Add(new QuizQuestion
+                {
+                    Question = question, OptionA = S("optionA"), OptionB = S("optionB"),
+                    OptionC = S("optionC"), OptionD = S("optionD"), CorrectOption = letter,
+                    Explanation = S("explanation"), Difficulty = diff, Topic = topic,
+                });
+            }
+        }
+        catch
+        {
+            return BadRequest(new { error = "AI trả về dữ liệu không hợp lệ, thử lại" });
+        }
+
+        if (created.Count == 0) return BadRequest(new { error = "AI không tạo được câu hỏi, thử lại" });
+
+        _db.QuizQuestions.AddRange(created);
+        await _db.SaveChangesAsync();
+        return created.Select(q => q.ToAdminDto()).ToList();
     }
 
     [Authorize(Roles = "Admin")]
