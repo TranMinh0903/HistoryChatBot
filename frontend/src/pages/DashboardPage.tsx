@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { Flame, Layers, MessageSquare, PenLine, Star } from 'lucide-react'
+import { Flame, Layers, MessageSquare, PenLine, Star, Users, UserCheck } from 'lucide-react'
 import type { Flashcard, QuizAttemptSummary, StatsActivity, StatsOverview, StatsQuiz } from '../types'
 import * as statsApi from '../api/stats'
 import * as fcApi from '../api/flashcards'
@@ -117,7 +117,14 @@ export default function DashboardPage() {
     })).sort((a, b) => b.value - a.value)
   }, [flashcards, flashcardReviews])
 
-  const kpis = [
+  const kpis = isAdmin ? [
+    { label: 'Tổng người dùng', value: overview?.totalUsers ?? 0, icon: Users },
+    { label: 'Hoạt động 7 ngày', value: overview?.activeUsers7d ?? 0, icon: UserCheck },
+    { label: 'Đoạn chat', value: sessions, icon: MessageSquare },
+    { label: 'Quiz đã làm', value: totalAttempts, icon: PenLine },
+    { label: 'Điểm trung bình', value: avgScore, icon: Star },
+    { label: 'Flashcard đã ôn', value: flashcardReviews, icon: Layers },
+  ] : [
     { label: 'Chuỗi học', value: `${streak} ngày`, icon: Flame },
     { label: 'Đoạn chat', value: sessions, icon: MessageSquare },
     { label: 'Quiz đã làm', value: totalAttempts, icon: PenLine },

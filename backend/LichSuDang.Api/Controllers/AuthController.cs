@@ -35,6 +35,7 @@ public class AuthController : ControllerBase
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
             Role = Role.User,
             LastLoginAt = DateTime.UtcNow,
+            LoginCount = 1,
         };
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
@@ -50,6 +51,7 @@ public class AuthController : ControllerBase
             return Unauthorized(new { error = "Sai tài khoản hoặc mật khẩu" });
 
         user.LastLoginAt = DateTime.UtcNow;
+        user.LoginCount++;
         await _db.SaveChangesAsync();
         return new AuthResponse(_jwt.Create(user), user.ToDto());
     }
@@ -87,6 +89,7 @@ public class AuthController : ControllerBase
                 AvatarUrl = payload.Picture,
                 Role = Role.User,
                 LastLoginAt = DateTime.UtcNow,
+                LoginCount = 1,
             };
             _db.Users.Add(user);
         }
@@ -95,6 +98,7 @@ public class AuthController : ControllerBase
             user.GoogleId ??= payload.Subject;
             if (string.IsNullOrEmpty(user.AvatarUrl)) user.AvatarUrl = payload.Picture;
             user.LastLoginAt = DateTime.UtcNow;
+            user.LoginCount++;
         }
 
         await _db.SaveChangesAsync();

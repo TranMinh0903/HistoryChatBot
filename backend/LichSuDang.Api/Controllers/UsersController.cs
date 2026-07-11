@@ -37,6 +37,24 @@ public class UsersController : ApiControllerBase
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.UserId, x => x.Count);
 
+        // Hoạt động 14 ngày gần nhất (SỐ THẬT) theo từng user: tin nhắn + lượt quiz mỗi ngày
+        const int days = 14;
+        var from = DateTime.UtcNow.Date.AddDays(-(days - 1));
+
+        var msgByUserDay = (await _db.ChatMessages
+            .Where(m => m.CreatedAt >= from && m.Role == "user")
+            .Select(m => new { m.Session!.UserId, m.CreatedAt })
+            .ToListAsync())
+            .GroupBy(x => (x.UserId, Day: x.CreatedAt.Date))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var quizByUserDay = (await _db.QuizAttempts
+            .Where(a => a.FinishedAt >= from)
+            .Select(a => new { a.UserId, a.FinishedAt })
+            .ToListAsync())
+            .GroupBy(x => (x.UserId, Day: x.FinishedAt.Date))
+            .ToDictionary(g => g.Key, g => g.Count());
+
         return users.Select(u =>
         {
             quizStats.TryGetValue(u.Id, out var quiz);
@@ -44,7 +62,14 @@ public class UsersController : ApiControllerBase
             var quizAttempts = quiz?.Count ?? 0;
             var flashcardReviews = flashcardCounts.GetValueOrDefault(u.Id);
             var webUses = chatSessions + quizAttempts + flashcardReviews;
-            var totalVisits = u.LastLoginAt is null ? 0 : Math.Max(1, (int)Math.Ceiling(webUses / 3.0));
+
+            var series = new List<int>(days);
+            for (var i = 0; i < days; i++)
+            {
+                var day = from.AddDays(i);
+                series.Add(msgByUserDay.GetValueOrDefault((u.Id, day)) + quizByUserDay.GetValueOrDefault((u.Id, day)));
+            }
+
             return new UserAdminDto(
                 u.Id, u.Username, u.DisplayName, u.Email, (int)u.Role, u.AvatarUrl,
                 u.CreatedAt, u.LastLoginAt,
@@ -52,21 +77,10 @@ public class UsersController : ApiControllerBase
                 quizAttempts,
                 quiz?.Avg ?? 0,
                 flashcardReviews,
-                totalVisits,
+                u.LoginCount,   // lượt truy cập THẬT
                 webUses,
-                BuildActivitySeries(webUses));
+                series);
         }).ToList();
-    }
-
-    private static List<int> BuildActivitySeries(int webUses)
-    {
-        var values = new List<int>(14);
-        for (var i = 0; i < 14; i++)
-        {
-            var value = webUses == 0 ? 0 : Math.Max(1, (webUses / 8 + i * 2 + (i % 3) * 3) % 12);
-            values.Add(value);
-        }
-        return values;
     }
 
     [Authorize(Roles = "Admin")]
