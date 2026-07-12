@@ -107,17 +107,13 @@ export default function DashboardPage() {
     ].filter((item) => item.value > 0)
   }, [flashcardReviews, flashcards.length])
 
+  // Hoạt động học THẬT theo giai đoạn (backend: quiz đã trả lời + flashcard đã ôn).
   const topicData = useMemo(() => {
-    const counts = new Map<string, number>()
-    flashcards.forEach((card) => {
-      const period = PERIODS.find((p) => card.period?.includes(p))
-      if (period) counts.set(period, (counts.get(period) ?? 0) + 1)
-    })
-    return PERIODS.map((period, index) => ({
-      topic: period,
-      value: counts.get(period) ?? Math.max(1, Math.round(flashcardReviews / (index + 4))),
-    })).sort((a, b) => b.value - a.value)
-  }, [flashcards, flashcardReviews])
+    const counts = new Map((quiz?.studyByPeriod ?? []).map((x) => [x.period, x.count]))
+    return PERIODS.map((period) => ({ topic: period, value: counts.get(period) ?? 0 }))
+      .sort((a, b) => b.value - a.value)
+  }, [quiz])
+  const hasTopicData = topicData.some((t) => t.value > 0)
 
   const kpis = isAdmin ? [
     { label: 'Tổng người dùng', value: overview?.totalUsers ?? 0, icon: Users },
@@ -213,14 +209,20 @@ export default function DashboardPage() {
               <h2>Chủ đề học nhiều nhất</h2>
               <span>Theo giai đoạn</span>
             </div>
-            <ResponsiveContainer width="100%" height={285}>
-              <BarChart data={topicData} layout="vertical" margin={{ left: 8, right: 16 }}>
-                <XAxis type="number" hide />
-                <YAxis type="category" dataKey="topic" tickLine={false} axisLine={false} fontSize={12} width={46} />
-                <Tooltip />
-                <Bar dataKey="value" name="Lượt học" fill={RED} radius={[0, 8, 8, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasTopicData ? (
+              <ResponsiveContainer width="100%" height={285}>
+                <BarChart data={topicData} layout="vertical" margin={{ left: 8, right: 16 }}>
+                  <XAxis type="number" hide allowDecimals={false} />
+                  <YAxis type="category" dataKey="topic" tickLine={false} axisLine={false} fontSize={12} width={46} />
+                  <Tooltip />
+                  <Bar dataKey="value" name="Lượt học" fill={RED} radius={[0, 8, 8, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="topic-empty muted">
+                Chưa có dữ liệu học tập.<br />Hãy làm quiz hoặc ôn thẻ ghi nhớ để xem giai đoạn bạn học nhiều nhất.
+              </div>
+            )}
           </article>
 
           {isAdmin && (

@@ -90,11 +90,34 @@ public class StatsController : ApiControllerBase
         var perDay = attempts.Where(a => a.FinishedAt >= from)
             .GroupBy(a => a.FinishedAt.Date).ToDictionary(g => g.Key, g => g.Count());
 
+        // Hoạt động học THẬT theo giai đoạn: câu quiz đã trả lời + flashcard đã ôn, gộp theo mốc năm.
+        // (Trước đây frontend bịa số từ bộ đề seed → account mới cũng có cột. Giờ lấy dữ liệu thật.)
+        var periods = new[] { "1954", "1960", "1968", "1975" };
+        var ansBase = IsAdmin
+            ? _db.QuizAttemptAnswers.Where(a => a.Attempt!.User!.Role == Role.User)
+            : _db.QuizAttemptAnswers.Where(a => a.Attempt!.UserId == UserId);
+        var answerPeriods = await (from ans in ansBase
+                                   join qq in _db.QuizQuestions on ans.QuestionId equals qq.Id
+                                   where qq.Period != null
+                                   select qq.Period!).ToListAsync();
+        var revBase = IsAdmin
+            ? _db.FlashcardReviews.Where(r => _db.Users.Any(u => u.Id == r.UserId && u.Role == Role.User))
+            : _db.FlashcardReviews.Where(r => r.UserId == UserId);
+        var reviewPeriods = await (from r in revBase
+                                   join f in _db.Flashcards on r.FlashcardId equals f.Id
+                                   where f.Period != null
+                                   select f.Period!).ToListAsync();
+        var studyRaw = answerPeriods.Concat(reviewPeriods).ToList();
+        var studyByPeriod = periods
+            .Select(p => new PeriodCountDto(p, studyRaw.Count(x => x.Contains(p))))
+            .ToList();
+
         return new StatsQuizDto(
             dist,
             FillDays(from, days, perDay),
             attempts.Count == 0 ? 0 : Math.Round(attempts.Average(a => (double)a.Score), 1),
-            attempts.Count == 0 ? 0 : attempts.Max(a => a.Score));
+            attempts.Count == 0 ? 0 : attempts.Max(a => a.Score),
+            studyByPeriod);
     }
 
     private static List<DayCountDto> FillDays(DateTime from, int days, Dictionary<DateTime, int> data)

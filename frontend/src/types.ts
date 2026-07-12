@@ -168,4 +168,5 @@ export interface StatsQuiz {
   attemptsPerDay: DayCount[]
   avgScore: number
   bestScore: number
+  studyByPeriod: { period: string; count: number }[]
 }

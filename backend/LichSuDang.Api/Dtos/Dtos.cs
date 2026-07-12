@@ -47,7 +47,9 @@ public record StatsOverviewDto(int TotalUsers, int ActiveUsers7d, int TotalSessi
 public record DayCountDto(string Day, int Count);
 public record StatsActivityDto(List<DayCountDto> MessagesPerDay, List<DayCountDto> NewUsersPerDay);
 public record ScoreBucketDto(string Bucket, int Count);
-public record StatsQuizDto(List<ScoreBucketDto> ScoreDistribution, List<DayCountDto> AttemptsPerDay, double AvgScore, int BestScore);
+public record PeriodCountDto(string Period, int Count);   // hoạt động học thật theo mốc giai đoạn
+public record StatsQuizDto(List<ScoreBucketDto> ScoreDistribution, List<DayCountDto> AttemptsPerDay, double AvgScore, int BestScore,
+    List<PeriodCountDto> StudyByPeriod);
 
 // ----- Mapping helpers -----
 public static class Mapping

@@ -234,4 +234,10 @@ export const MOCK_STATS_QUIZ: StatsQuiz = {
   attemptsPerDay: lastNDays(30, 6, 4),
   avgScore: 72.4,
   bestScore: 100,
+  studyByPeriod: [
+    { period: '1954', count: 42 },
+    { period: '1960', count: 35 },
+    { period: '1968', count: 58 },
+    { period: '1975', count: 47 },
+  ],
 }
