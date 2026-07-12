@@ -145,6 +145,12 @@ export interface FlashcardInput {
   period?: string
 }
 
+// Trạng thái ghi nhớ thật của user (lần đánh giá mới nhất mỗi thẻ)
+export interface FlashcardStatus {
+  flashcardId: string
+  remembered: boolean
+}
+
 // ----- Stats -----
 export interface StatsOverview {
   totalUsers: number

@@ -38,6 +38,7 @@ public record QuizQuestionAdminDto(Guid Id, string Question, string OptionA, str
 
 // ----- Flashcards -----
 public record FlashcardDto(Guid Id, string Front, string Back, string? Topic, string? Period);
+public record FlashcardStatusDto(Guid FlashcardId, bool Remembered);   // trạng thái mới nhất mỗi thẻ của chính user
 public record ReviewFlashcardRequest(bool Remembered);
 public record CreateFlashcardRequest(string Front, string Back, string? Topic, string? Period);
 

@@ -35,7 +35,16 @@ export default function FlashcardsPage() {
 
   async function load() {
     setLoading(true)
-    try { setCards(await fcApi.getFlashcards()) } finally { setLoading(false) }
+    try {
+      const [cardsData, status] = await Promise.all([
+        fcApi.getFlashcards(),
+        fcApi.getMyStatus().catch(() => []),
+      ])
+      setCards(cardsData)
+      // Khôi phục tiến độ đã lưu: thẻ có lần đánh giá mới nhất = "Đã nhớ" → known
+      // (không hiện "Đã nhớ 0" sai lệch sau khi F5). "Hơi nhớ" không lưu ở backend nên không khôi phục.
+      setKnown(new Set(status.filter((s) => s.remembered).map((s) => s.flashcardId)))
+    } finally { setLoading(false) }
   }
 
   const periods = useMemo(

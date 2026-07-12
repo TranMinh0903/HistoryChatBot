@@ -22,6 +22,22 @@ public class FlashcardsController : ApiControllerBase
         return await q.OrderBy(f => f.Period).Select(f => f.ToDto()).ToListAsync();
     }
 
+    // Trạng thái ghi nhớ THẬT của chính user: mỗi thẻ lấy theo lần đánh giá MỚI NHẤT.
+    // Dùng cho donut Dashboard + khôi phục tiến độ trang Flashcard sau khi F5.
+    [HttpGet("my-status")]
+    public async Task<ActionResult<List<FlashcardStatusDto>>> MyStatus()
+    {
+        var uid = UserId;
+        var reviews = await _db.FlashcardReviews
+            .Where(r => r.UserId == uid)
+            .Select(r => new { r.FlashcardId, r.Remembered, r.ReviewedAt })
+            .ToListAsync();
+        return reviews
+            .GroupBy(r => r.FlashcardId)
+            .Select(g => new FlashcardStatusDto(g.Key, g.OrderByDescending(x => x.ReviewedAt).First().Remembered))
+            .ToList();
+    }
+
     [HttpPost("{id}/review")]
     public async Task<IActionResult> Review(Guid id, ReviewFlashcardRequest req)
     {

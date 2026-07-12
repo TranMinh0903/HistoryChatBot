@@ -13,7 +13,7 @@ import {
   YAxis,
 } from 'recharts'
 import { Flame, Layers, MessageSquare, PenLine, Star, Users, UserCheck } from 'lucide-react'
-import type { Flashcard, LeaderboardEntry, QuizAttemptSummary, StatsActivity, StatsOverview, StatsQuiz } from '../types'
+import type { Flashcard, FlashcardStatus, LeaderboardEntry, QuizAttemptSummary, StatsActivity, StatsOverview, StatsQuiz } from '../types'
 import * as statsApi from '../api/stats'
 import * as fcApi from '../api/flashcards'
 import * as quizApi from '../api/quiz'
@@ -33,16 +33,18 @@ export default function DashboardPage() {
   const [activity, setActivity] = useState<StatsActivity | null>(null)
   const [quiz, setQuiz] = useState<StatsQuiz | null>(null)
   const [flashcards, setFlashcards] = useState<Flashcard[]>([])
+  const [fcStatus, setFcStatus] = useState<FlashcardStatus[]>([])
   const [attempts, setAttempts] = useState<QuizAttemptSummary[]>([])
   const [board, setBoard] = useState<LeaderboardEntry[]>([])
 
   useEffect(() => {
     void (async () => {
-      const [o, a, q, f, qa] = await Promise.all([
+      const [o, a, q, f, st, qa] = await Promise.all([
         statsApi.getOverview(),
         statsApi.getActivity(30),
         statsApi.getQuizStats(),
         fcApi.getFlashcards().catch(() => []),
+        fcApi.getMyStatus().catch(() => []),   // trạng thái ghi nhớ THẬT của user
         // Admin xem toàn hệ thống (Get All); user thường chỉ xem của mình
         (isAdmin ? quizApi.getAllAttempts(20) : quizApi.getAttempts()).catch(() => []),
       ])
@@ -50,6 +52,7 @@ export default function DashboardPage() {
       setActivity(a)
       setQuiz(q)
       setFlashcards(f)
+      setFcStatus(st)
       setAttempts(qa)
       if (isAdmin) quizApi.getLeaderboard(10).then(setBoard).catch(() => {})
     })()
@@ -96,16 +99,18 @@ export default function DashboardPage() {
     }))
   ), [attempts])
 
+  // Trạng thái THẬT theo lần đánh giá mới nhất mỗi thẻ của user (backend /flashcards/my-status).
   const flashcardStatus = useMemo(() => {
-    const remembered = Math.min(flashcards.length || flashcardReviews, Math.round(flashcardReviews * 0.58))
-    const partial = Math.max(0, Math.round(flashcardReviews * 0.24))
-    const unknown = Math.max(0, (flashcards.length || remembered + partial) - remembered - partial)
+    const remembered = fcStatus.filter((s) => s.remembered).length
+    const notRemembered = fcStatus.filter((s) => !s.remembered).length
+    const notReviewed = Math.max(0, flashcards.length - fcStatus.length)
     return [
       { name: 'Đã nhớ', value: remembered, color: GREEN },
-      { name: 'Hơi nhớ', value: partial, color: GOLD },
-      { name: 'Chưa nhớ', value: unknown, color: MUTED },
+      { name: 'Chưa nhớ', value: notRemembered, color: GOLD },
+      { name: 'Chưa ôn', value: notReviewed, color: MUTED },
     ].filter((item) => item.value > 0)
-  }, [flashcardReviews, flashcards.length])
+  }, [fcStatus, flashcards.length])
+  const hasReviewed = fcStatus.length > 0
 
   // Hoạt động học THẬT theo giai đoạn (backend: quiz đã trả lời + flashcard đã ôn).
   const topicData = useMemo(() => {
@@ -187,21 +192,27 @@ export default function DashboardPage() {
               <h2>Trạng thái Flashcard</h2>
               <span>{flashcards.length} thẻ</span>
             </div>
-            <div className="analytics-donut">
-              <ResponsiveContainer width="56%" height={285}>
-                <PieChart>
-                  <Pie data={flashcardStatus} dataKey="value" innerRadius={58} outerRadius={90} paddingAngle={3}>
-                    {flashcardStatus.map((item) => <Cell key={item.name} fill={item.color} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="analytics-legend">
-                {flashcardStatus.map((item) => (
-                  <span key={item.name}><i style={{ background: item.color }} />{item.name}<b>{item.value}</b></span>
-                ))}
+            {hasReviewed ? (
+              <div className="analytics-donut">
+                <ResponsiveContainer width="56%" height={285}>
+                  <PieChart>
+                    <Pie data={flashcardStatus} dataKey="value" innerRadius={58} outerRadius={90} paddingAngle={3}>
+                      {flashcardStatus.map((item) => <Cell key={item.name} fill={item.color} />)}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="analytics-legend">
+                  {flashcardStatus.map((item) => (
+                    <span key={item.name}><i style={{ background: item.color }} />{item.name}<b>{item.value}</b></span>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="topic-empty muted">
+                Chưa ôn thẻ ghi nhớ nào.<br />Vào mục "Thẻ ghi nhớ" và đánh giá để theo dõi tiến độ.
+              </div>
+            )}
           </article>
 
           <article className="analytics-card analytics-topic card">
