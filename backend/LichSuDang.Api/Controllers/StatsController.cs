@@ -108,8 +108,10 @@ public class StatsController : ApiControllerBase
                                    where f.Period != null
                                    select f.Period!).ToListAsync();
         var studyRaw = answerPeriods.Concat(reviewPeriods).ToList();
+        // Gán mỗi hoạt động vào MỐC ĐẦU TIÊN mà chuỗi Period chứa (không đếm trùng cho khoảng "1954-1975").
+        string? Marker(string period) => periods.FirstOrDefault(period.Contains);
         var studyByPeriod = periods
-            .Select(p => new PeriodCountDto(p, studyRaw.Count(x => x.Contains(p))))
+            .Select(p => new PeriodCountDto(p, studyRaw.Count(x => Marker(x) == p)))
             .ToList();
 
         return new StatsQuizDto(
